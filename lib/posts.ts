@@ -1,6 +1,8 @@
 import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
+import { remark } from "remark";
+import html from "remark-html";
 
 const postsDirectory = path.join(process.cwd(), "posts");
 
@@ -45,12 +47,18 @@ export function getSortedPostsData(): PostData[] {
 export async function getPostData(id: string): Promise<PostData> {
   const fullPath = path.join(postsDirectory, `${id}.md`);
   const contents = fs.readFileSync(fullPath, "utf-8");
-  const { content, data } = matter(contents);
+  const matterResult = matter(contents);
+
+  // Markdown text to html
+  const processedContent = await remark()
+    .use(html)
+    .process(matterResult.content);
+  const content = processedContent.toString();
 
   return {
     id,
     content,
-    ...data,
+    ...matterResult.data,
   };
 }
 

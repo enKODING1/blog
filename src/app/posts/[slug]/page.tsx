@@ -17,7 +17,7 @@ export default async function PostPage({
     <div>
       <h1>{title}</h1>
       <p>{date}</p>
-      <main>{content}</main>
+      <main className="prose dark:prose-invert" dangerouslySetInnerHTML={{ __html: content }} />
     </div>
   );
 }
