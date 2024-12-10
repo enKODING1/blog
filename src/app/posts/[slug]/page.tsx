@@ -1,5 +1,6 @@
 import { getAllPostIds, getPostData } from "../../../../lib/posts";
 import Post from "../../../components/Post";
+import Comments from "@/components/Comments";
 
 export async function generateStaticParams() {
   const posts = getAllPostIds();
@@ -21,6 +22,7 @@ export default async function PostPage({
         date={date ?? "Undefined Date"}
         content={content}
       />
+      <Comments />
     </>
   );
 }
