@@ -1,4 +1,5 @@
 import { getAllPostIds, getPostData } from "../../../../lib/posts";
+import Post from "../../../components/Post";
 
 export async function generateStaticParams() {
   const posts = getAllPostIds();
@@ -14,10 +15,12 @@ export default async function PostPage({
   const { title, date, content } = await getPostData(id);
 
   return (
-    <div>
-      <h1>{title}</h1>
-      <p>{date}</p>
-      <main className="prose dark:prose-invert" dangerouslySetInnerHTML={{ __html: content }} />
-    </div>
+    <>
+      <Post
+        title={title ?? "Undefined Title"}
+        date={date ?? "Undefined Date"}
+        content={content}
+      />
+    </>
   );
 }

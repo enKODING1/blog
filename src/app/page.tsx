@@ -1,18 +1,19 @@
-import Link from "next/link";
 import { getSortedPostsData } from "../../lib/posts";
+import PostThumbnail from "../components/PostThumbnail";
 
 export default function Home() {
   const allPostsData = getSortedPostsData();
   return (
     <>
-      <h1>Blog</h1>
-      <ul>
+      <ul className={`flex flex-wrap gap-2`}>
         {allPostsData.map(({ id, title, date }) => {
           return (
-            <Link href={`posts/${id}`} key={id}>
-              <li>{title}</li>
-              <li>{date}</li>
-            </Link>
+            <PostThumbnail
+              href={`posts/${id}`}
+              title={title ?? "Undefined Title"}
+              date={date ?? "Undefined Date"}
+              key={id}
+            />
           );
         })}
       </ul>
