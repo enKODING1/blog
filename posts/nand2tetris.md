@@ -1,6 +1,7 @@
 ---
 title: '밑바닥부터 만드는 컴퓨팅 시스템 후기 The Elements of Computing systems'
 date: '2023-04-20'
+category: 'LOG'
 ---
 ## **어떤 책인가요 ?** 
 

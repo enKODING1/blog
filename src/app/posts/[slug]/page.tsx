@@ -13,13 +13,14 @@ export default async function PostPage({
   params: Promise<{ slug: string }>;
 }) {
   const id = (await params).slug;
-  const { title, date, content } = await getPostData(id);
+  const { title, date, category, content } = await getPostData(id);
 
   return (
     <>
       <Post
         title={title ?? "Undefined Title"}
         date={date ?? "Undefined Date"}
+        category={category ?? "undefined Category"}
         content={content}
       />
       <Comments />

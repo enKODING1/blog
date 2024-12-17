@@ -11,6 +11,7 @@ export type PostData = {
   content: string;
   date?: string;
   title?: string;
+  category?: string; 
 };
 
 export function getSortedPostsData(): PostData[] {
