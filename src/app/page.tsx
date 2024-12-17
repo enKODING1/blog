@@ -5,7 +5,7 @@ export default function Home() {
   const allPostsData = getSortedPostsData();
   return (
     <>
-      <ul className={`flex flex-wrap gap-2`}>
+      <ul className={`w-full flex flex-col gap-2`}>
         {allPostsData.map(({ id, title, date }) => {
           return (
             <PostThumbnail

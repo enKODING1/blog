@@ -4,14 +4,12 @@ import { useEffect, useRef } from "react";
 
 export default function Comments() {
   const commentsRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
-    if (!commentsRef.current) {
-      console.error("Comments container not mounted yet");
-      return;
-    }
+    if (!commentsRef.current) return;
 
-    commentsRef.current.innerHTML = "";
+    // 중복 삽입 방지
+    if (commentsRef.current.hasChildNodes()) return;
+
 
     const script = document.createElement("script");
     script.src = "https://utteranc.es/client.js";
@@ -25,5 +23,5 @@ export default function Comments() {
     commentsRef.current.appendChild(script);
   }, []);
 
-  return <div ref={commentsRef}></div>;
+  return <div ref={commentsRef} className="w-full mt-10"></div>;
 }
