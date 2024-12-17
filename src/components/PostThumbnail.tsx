@@ -21,7 +21,7 @@ export default function PostThumbnail({
       href={href}
       className={`block hover:bg-[rgba(100,100,100,0.2)] border-solid border-inherit p-4 rounded-xl  ${style}`}
     >
-      <li>{title}</li>
+      <li className="truncate">{title}</li>
       <div className="flex flex-row justify-between space-around mt-[4px]">
         <Chip label={category} />
         <li>{date}</li>
