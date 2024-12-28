@@ -1,5 +1,5 @@
 import { getSortedPostsData } from "../../lib/posts";
-import PostThumbnail from "../components/PostThumbnail";
+import PostThumbnail from "./components/PostThumbnail";
 
 export default function Home() {
   const allPostsData = getSortedPostsData();

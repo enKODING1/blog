@@ -1,6 +1,6 @@
 import { getAllPostIds, getPostData } from "../../../../lib/posts";
-import Post from "../../../components/Post";
-import Comments from "@/components/Comments";
+import Post from "../../components/Post";
+import Comments from "@/app/components/Comments";
 
 export async function generateStaticParams() {
   const posts = getAllPostIds();
