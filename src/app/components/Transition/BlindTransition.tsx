@@ -16,7 +16,7 @@ export default function BlindTransition({
     <div>
       <div
         id="banner-1"
-        className="min-h-screen w-[100%] bg-white z-10 fixed top-0 left-0 "
+        className="min-h-screen w-[100%] backdrop-blur-[8px] backdrop-saturate-[100%] bg-opacity-50 z-10 fixed top-0 left-0 "
       />
 
       {children}
