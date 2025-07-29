@@ -2,7 +2,9 @@ import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
 import { remark } from "remark";
-import html from "remark-html";
+import remarkRehype from "remark-rehype";
+import rehypeHighlight from "rehype-highlight";
+import rehypeStringify from "rehype-stringify";
 
 const postsDirectory = path.join(process.cwd(), "posts");
 
@@ -50,9 +52,11 @@ export async function getPostData(id: string): Promise<PostData> {
   const contents = fs.readFileSync(fullPath, "utf-8");
   const matterResult = matter(contents);
 
-  // Markdown text to html
+  // Markdown text to html with syntax highlighting
   const processedContent = await remark()
-    .use(html)
+    .use(remarkRehype)
+    .use(rehypeHighlight)
+    .use(rehypeStringify)
     .process(matterResult.content);
   const content = processedContent.toString();
 
