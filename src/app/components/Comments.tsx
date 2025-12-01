@@ -13,7 +13,7 @@ export default function Comments() {
     const script = document.createElement("script");
     script.src = "https://utteranc.es/client.js";
     script.async = true;
-    script.setAttribute("repo", "enkoding1/enkoding1.github.io");
+    script.setAttribute("repo", "enKODING1/blog");
     script.setAttribute("issue-term", "pathname");
     script.setAttribute("label", "comments");
     script.setAttribute("theme", "github-light");
