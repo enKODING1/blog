@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: 'export',
-  basePath: '',
+  output: "export",
+  basePath: "",
   /* config options here */
 };
 
