@@ -2,7 +2,10 @@ import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
 import { remark } from "remark";
+import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 import remarkRehype from "remark-rehype";
+import rehypeRaw from "rehype-raw";
 import rehypeHighlight from "rehype-highlight";
 import rehypeStringify from "rehype-stringify";
 
@@ -54,7 +57,10 @@ export async function getPostData(id: string): Promise<PostData> {
 
   // Markdown text to html with syntax highlighting
   const processedContent = await remark()
-    .use(remarkRehype)
+    .use(remarkGfm) // GitHub Flavored Markdown (tables, task lists, strikethrough, etc.)
+    .use(remarkBreaks) // Convert line breaks to <br>
+    .use(remarkRehype, { allowDangerousHtml: true }) // Allow raw HTML
+    .use(rehypeRaw) // Parse raw HTML in markdown
     .use(rehypeHighlight)
     .use(rehypeStringify)
     .process(matterResult.content);
