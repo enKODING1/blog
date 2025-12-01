@@ -4,7 +4,7 @@ import Comments from "@/app/components/Comments";
 
 export async function generateStaticParams() {
   const posts = getAllPostIds();
-  return posts.map((post) => ({ slug: post }));
+  return posts.map(post => ({ slug: post }));
 }
 
 export default async function PostPage({

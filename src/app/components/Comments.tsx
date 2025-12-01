@@ -10,7 +10,6 @@ export default function Comments() {
     // 중복 삽입 방지
     if (commentsRef.current.hasChildNodes()) return;
 
-
     const script = document.createElement("script");
     script.src = "https://utteranc.es/client.js";
     script.async = true;

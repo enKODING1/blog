@@ -1,14 +1,14 @@
 ---
-title: '나만의 minishell 만들어보기'
-date: '2025-07-26'
-category: 'CS'
+title: "나만의 minishell 만들어보기"
+date: "2025-07-26"
+category: "CS"
 ---
 
 # **minishell**
 
 과제 목적
 
-42school의 bash 작은버전을 만들어 보는 과제다. pipex 에서는 간단한 here\_doc과 redirection을 구현했지만 이 과제는 pipex의 개념은 물론 기본 명령어 처리, 따옴표 처리, 빌트인 명령어, 시그널 감지, 다중 파이프 구축 을 해보는 것이다. 완전히 동작하는 쉘을 구현한다. bash의 기준에 맞춰 최대한 구현 해본다.
+42school의 bash 작은버전을 만들어 보는 과제다. pipex 에서는 간단한 here_doc과 redirection을 구현했지만 이 과제는 pipex의 개념은 물론 기본 명령어 처리, 따옴표 처리, 빌트인 명령어, 시그널 감지, 다중 파이프 구축 을 해보는 것이다. 완전히 동작하는 쉘을 구현한다. bash의 기준에 맞춰 최대한 구현 해본다.
 
 # **구동영상**
 
@@ -38,10 +38,9 @@ lexing 에서는 문자, 연산자.. 등등 구문들의 타입을 정한 후 �
 
 [**This Simple Algorithm Powers Real Interpreters: Pratt Parsing**](minishell%2020bc57cc965680b4b1fed6304fb3004d/This%20Simple%20Algorithm%20Powers%20Real%20Interpreters%20Pra%2020cc57cc9656804d86d6db029bdd39ab.md)
 
-
 ## **토큰 정의**
 
-``` c
+```c
 typedef enum e_token{
     PIPE,  |
     HEREDOC,  <<
@@ -53,13 +52,13 @@ typedef enum e_token{
 }
 ```
 
-크게 구분해야할 요소들은 PIPE, REDIRECTION(<, >, <<, >>), WORD, END 다. 각 요소들은 특정 문자가 왔을 때 뒤에 와야할 구문들이 각기 다른 요소를 기준으로 토큰화를 했다. 명령어, 명령어의 인자 를 별도의 cmd, cmd\_args와 같은 토큰으로 분리하지 않고 모두 WORD토큰으로 취급하도록 했다. 파싱 단계에서 문법을 검사하며 유효하지 않는다면 에러를 발생시킬 거기 때문이다.
+크게 구분해야할 요소들은 PIPE, REDIRECTION(<, >, <<, >>), WORD, END 다. 각 요소들은 특정 문자가 왔을 때 뒤에 와야할 구문들이 각기 다른 요소를 기준으로 토큰화를 했다. 명령어, 명령어의 인자 를 별도의 cmd, cmd_args와 같은 토큰으로 분리하지 않고 모두 WORD토큰으로 취급하도록 했다. 파싱 단계에서 문법을 검사하며 유효하지 않는다면 에러를 발생시킬 거기 때문이다.
 
 ### **BNF정의**
 
 파싱 후 ast를 만들어야 하는데 이때 BNF(Backus–Naur form)표기법을 이용하면 트리를 어떻게 만들어야 할지와 문법적 구조를 간단하게 확인할 수 있다. 해당 규칙을 기반으로 파서는 현재 토큰들이 올바른 위치에 왔는지 확인하고 현재 토큰 다음에 출현해야할 토큰이 아니라면 문법적 오류를 출력해줄 수 있다.
 
-``` c
+```c
 <PIPE> ::= <COMMAND> [<COMMAND>"|"<PIPE>]
 <COMMAND> ::= <COMMAND_ELEMENT>+
 <COMMAND_ELEMENT> ::= <WORD> | <REDIRECTION>
@@ -70,7 +69,7 @@ typedef enum e_token{
 
 ### **AST**
 
-``` bash
+```bash
 << eof << eof << eof cat | cat > outfile | cat > iutfile
 ```
 
@@ -93,7 +92,7 @@ args: (비어있음) |                        args: (비어있음) |
              - type: HEREDOC, file: "eof"
 ```
 
-``` bash
+```bash
 echo "hello world" > infile
 ```
 
@@ -113,7 +112,7 @@ parser는 현재 토큰을 기반으로 문법을 분석하고 문법이 틀리�
 
 ### **parse redirection**
 
-``` c
+```c
 t_redir *parse_redirs(t_parser *parser)
 {
     t_redir *redir_head = (t_redir *)ft_calloc(1, sizeof(t_redir));
@@ -125,7 +124,7 @@ t_redir *parse_redirs(t_parser *parser)
     {
         parser->has_error = 1;
         free(redir_head);
-        return NULL; 
+        return NULL;
     }
 
     redir_head->filename = peek_token(parser)->value;
@@ -136,7 +135,7 @@ t_redir *parse_redirs(t_parser *parser)
 
 ### **parse command**
 
-``` c
+```c
 t_node *parse_cmd(t_parser *parser)
 {
     t_cmd_node *cmd_head = (t_cmd_node *)ft_calloc(1, sizeof(t_cmd_node));
@@ -148,9 +147,9 @@ t_node *parse_cmd(t_parser *parser)
     {
         if (peek_token(parser)->type == WORD)
         {
-           if (cmd_head->cmd == NULL) 
+           if (cmd_head->cmd == NULL)
                 cmd_head->cmd = peek_token(parser)->value;
-            else 
+            else
                 cmd_head->args[i++] = peek_token(parser)->value;
             consume_token(parser);
         }
@@ -179,23 +178,23 @@ t_node *parse_cmd(t_parser *parser)
 
 ### **parse pipe**
 
-``` c
+```c
 t_node *parse_pipe(t_parser *parser)
 {
-    if (!peek_token(parser) || peek_token(parser)->type == END) 
+    if (!peek_token(parser) || peek_token(parser)->type == END)
         return NULL;
 
     t_node *node = parse_cmd(parser);
-    if (parser->has_error) 
+    if (parser->has_error)
         return NULL;
 
     if (peek_token(parser) && peek_token(parser)->type == PIPE)
     {
         consume_token(parser);
-        if (!peek_token(parser) || peek_token(parser)->type == END) 
-        { 
-            parser->has_error = 1; 
-            return NULL; 
+        if (!peek_token(parser) || peek_token(parser)->type == END)
+        {
+            parser->has_error = 1;
+            return NULL;
         }
         t_pipe_node *pipe = (t_pipe_node *)ft_calloc(1, sizeof(t_pipe_node));
         pipe->type = NODE_PIPE;
@@ -216,7 +215,7 @@ t_node *parse_pipe(t_parser *parser)
 
 ### **executor(단일 명령어)**
 
-단일 명령어의 경우 executor함수를 시작하게 될 때 pipe node일 때, cmd node 일 때를 구분했을 때 cmd node에서 실행될 때다. cmd\_node에서 빌트인일때, 외부함수일때 를 구분해야한다. 외부함수일때는 fork를 해줘야한다. 외부의 실행가능한 파일을 실행할때는 execve를 사용하는데 이는 현재 프로세스를 실행가능한 파일로 대체하기 때문이다. fork를 한 후 명re령어의 경로 access가능한지 확인한 후 execve를 통해 명령어를 실행한다.
+단일 명령어의 경우 executor함수를 시작하게 될 때 pipe node일 때, cmd node 일 때를 구분했을 때 cmd node에서 실행될 때다. cmd_node에서 빌트인일때, 외부함수일때 를 구분해야한다. 외부함수일때는 fork를 해줘야한다. 외부의 실행가능한 파일을 실행할때는 execve를 사용하는데 이는 현재 프로세스를 실행가능한 파일로 대체하기 때문이다. fork를 한 후 명re령어의 경로 access가능한지 확인한 후 execve를 통해 명령어를 실행한다.
 
 ### **executor(파이프)**
 
@@ -246,4 +245,4 @@ $?는 이전 명령어의 상태코드를 출력한다. 0은 에러 발생없음
 
 ### **변수확장**
 
-현재 변수 확장 과정은 각 함수에서 실행된다. builtin, heredoc등 위 과정을 execute 실행되고 builtin과 외부 명령어 실행하기 전에 변수를 확장해서 값으로 넘겨야 겠다. ft\_argv\_filter를 사용해서 쌍따옴표, 단일 달러는 변수를 확장 시켜준다. 그럼 그 외에 홀 따옴표, 쌍 따옴표만 있는 경우 따옴표 제거를 해주나 ?
+현재 변수 확장 과정은 각 함수에서 실행된다. builtin, heredoc등 위 과정을 execute 실행되고 builtin과 외부 명령어 실행하기 전에 변수를 확장해서 값으로 넘겨야 겠다. ft_argv_filter를 사용해서 쌍따옴표, 단일 달러는 변수를 확장 시켜준다. 그럼 그 외에 홀 따옴표, 쌍 따옴표만 있는 경우 따옴표 제거를 해주나 ?

@@ -13,7 +13,7 @@ export type PostData = {
   content: string;
   date?: string;
   title?: string;
-  category?: string; 
+  category?: string;
 };
 
 export function getSortedPostsData(): PostData[] {
@@ -69,7 +69,7 @@ export async function getPostData(id: string): Promise<PostData> {
 
 export function getAllPostIds() {
   const fileNames = fs.readdirSync(postsDirectory);
-  const allPostsData = fileNames.map((fileName) => {
+  const allPostsData = fileNames.map(fileName => {
     const id = fileName.replace(/\.md$/, "");
     return id;
   });
