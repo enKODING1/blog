@@ -42,6 +42,8 @@ describe("normalizeNavKey", () => {
     ["Process", "KeyJ", "j"],
     ["j", "KeyJ", "j"],
     ["x", "KeyX", "x"],
+    ["c", "KeyJ", "c"],
+    ["j", "KeyC", "j"],
     ["ArrowDown", "ArrowDown", "ArrowDown"],
   ])("(%s, %s) -> %s", (key, code, out) => {
     expect(normalizeNavKey(key, code)).toBe(out);

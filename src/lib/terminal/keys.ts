@@ -28,6 +28,8 @@ export function isTypingTarget(
 /** Maps Korean-IME keys (e.key "ㅓ"/"Process") to j/k via the physical key. */
 export function normalizeNavKey(key: string, code: string): string {
   if (["j", "k", "ArrowUp", "ArrowDown"].includes(key)) return key;
+  // A printable ASCII key is what the layout really typed (e.g. Dvorak).
+  if (/^[\x20-\x7e]$/.test(key)) return key;
   if (code === "KeyJ") return "j";
   if (code === "KeyK") return "k";
   return key;
