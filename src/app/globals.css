@@ -8,6 +8,7 @@
   --color-line: #333333;
   --color-accent: #54fcfc;
   --color-error: #ff5f57;
+  --font-sans: system-ui, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
 }
 
 body {
@@ -25,9 +26,41 @@ body {
   outline-offset: 2px;
 }
 
-.invert {
-  background: var(--color-fg);
+/* Inverted highlight (selected row, hover). A utility so variants work:
+   hover:term-sel, group-hover:term-sel, aria-selected:term-sel. Children
+   inherit the inverted color so dim/accent text stays readable. */
+@utility term-sel {
+  background-color: var(--color-fg);
   color: var(--color-bg);
+
+  & * {
+    color: inherit;
+  }
+}
+
+/* Article body: dark prose tuned to the terminal tokens. */
+.prose.prose-invert {
+  --tw-prose-invert-body: #d0d0d0;
+  --tw-prose-invert-headings: var(--color-fg);
+  --tw-prose-invert-lead: #d0d0d0;
+  --tw-prose-invert-links: var(--color-fg);
+  --tw-prose-invert-bold: var(--color-fg);
+  --tw-prose-invert-counters: var(--color-dim);
+  --tw-prose-invert-bullets: var(--color-dim);
+  --tw-prose-invert-hr: var(--color-line);
+  --tw-prose-invert-quotes: #d0d0d0;
+  --tw-prose-invert-quote-borders: var(--color-line);
+  --tw-prose-invert-captions: var(--color-dim);
+  --tw-prose-invert-code: var(--color-fg);
+  --tw-prose-invert-pre-code: var(--color-fg);
+  --tw-prose-invert-pre-bg: #141414;
+  --tw-prose-invert-th-borders: var(--color-line);
+  --tw-prose-invert-td-borders: var(--color-line);
+}
+
+/* Code stays monospace inside the sans-serif article body. */
+.prose :where(code, pre, kbd, samp) {
+  font-family: var(--font-mono), ui-monospace, monospace;
 }
 
 .scanlines {

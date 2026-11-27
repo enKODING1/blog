@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { getPublishedPost } from "@/lib/posts/repo";
 import { renderMarkdown } from "@/lib/markdown";
 import { isValidSlug } from "@/lib/posts/validate";
+import Link from "next/link";
+import Scramble from "@/app/_terminal/Scramble";
 
 export const dynamic = "force-dynamic";
 
@@ -27,16 +29,30 @@ export default async function PostPage({ params }: Props) {
   const html = await renderMarkdown(post.content);
 
   return (
-    <>
-      <h1 className="text-2xl font-bold">{post.title}</h1>
-      <p className="mb-6 flex gap-3 text-sm">
-        <span>{post.date}</span>
-        <span>{post.category}</span>
+    <div className="py-6">
+      <p data-line className="text-dim">
+        $ cat posts/{slug}.md
+      </p>
+      <h1
+        data-line
+        tabIndex={-1}
+        className="mt-4 text-2xl font-bold text-fg outline-none"
+      >
+        <Scramble trigger="mount" text={post.title} />
+      </h1>
+      <p data-line className="mt-1 text-sm text-dim">
+        {post.date} · {post.category}
       </p>
       <article
-        className="prose dark:prose-invert"
+        data-line
+        className="prose prose-invert mt-8 max-w-none font-sans"
         dangerouslySetInnerHTML={{ __html: html }}
       />
-    </>
+      <p data-line className="mt-12">
+        <Link href="/" className="px-1 hover:term-sel">
+          ← cd ..
+        </Link>
+      </p>
+    </div>
   );
 }

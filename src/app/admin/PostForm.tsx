@@ -19,7 +19,10 @@ import { seoulToday } from "@/lib/date";
 
 type Props = { mode: "create" | "update"; initial?: PostInput };
 
-const inputClass = "w-full rounded border px-2 py-1";
+const inputClass =
+  "w-full border border-line bg-bg px-2 py-1 text-fg focus:border-fg";
+const buttonClass =
+  "border border-line px-3 py-1 enabled:hover:term-sel disabled:opacity-50";
 
 export default function PostForm({ mode, initial }: Props) {
   const [form, setForm] = useState<PostInput>(
@@ -159,18 +162,16 @@ export default function PostForm({ mode, initial }: Props) {
     children: React.ReactNode
   ) => (
     <label className="block">
-      <span className="text-sm">{label}</span>
+      <span className="text-sm text-dim">{label}</span>
       {children}
-      {errors[key] && (
-        <span className="text-sm text-red-600">{errors[key]}</span>
-      )}
+      {errors[key] && <span className="text-sm text-error">{errors[key]}</span>}
     </label>
   );
 
   return (
     <div className="space-y-4">
       {failed && (
-        <p className="text-sm text-red-600">
+        <p className="text-sm text-error">
           저장하지 못했습니다. 로그인이 만료되었을 수 있습니다.{" "}
           <a
             href={loginHref()}
@@ -182,7 +183,7 @@ export default function PostForm({ mode, initial }: Props) {
           </a>
         </p>
       )}
-      {errors._ && <p className="text-sm text-red-600">{errors._}</p>}
+      {errors._ && <p className="text-sm text-error">{errors._}</p>}
       {field(
         "제목",
         "title",
@@ -255,24 +256,26 @@ export default function PostForm({ mode, initial }: Props) {
           }}
         />
       )}
-      {uploadError && <p className="text-sm text-red-600">{uploadError}</p>}
+      {uploadError && <p className="text-sm text-error">{uploadError}</p>}
       <div className="flex gap-3">
         <button
           type="button"
           disabled={pending || uploading > 0}
           onClick={onSave}
-          className="rounded border px-3 py-1"
+          className={buttonClass}
         >
           저장
         </button>
         {uploading > 0 && (
-          <span className="self-center text-sm">이미지 업로드 중…</span>
+          <span className="self-center text-sm text-dim">
+            이미지 업로드 중…
+          </span>
         )}
         <button
           type="button"
           disabled={pending}
           onClick={onPreview}
-          className="rounded border px-3 py-1"
+          className={buttonClass}
         >
           미리보기
         </button>
@@ -281,7 +284,7 @@ export default function PostForm({ mode, initial }: Props) {
             type="button"
             disabled={pending}
             onClick={onDelete}
-            className="rounded border px-3 py-1 text-red-600"
+            className={`${buttonClass} text-error`}
           >
             삭제
           </button>
@@ -289,7 +292,7 @@ export default function PostForm({ mode, initial }: Props) {
       </div>
       {html !== null && (
         <article
-          className="prose dark:prose-invert"
+          className="prose prose-invert max-w-none font-sans"
           dangerouslySetInnerHTML={{ __html: html }}
         />
       )}

@@ -11,12 +11,18 @@ export default async function AdminLayout({
   await requireAdminPage("/admin");
   return (
     <>
-      <nav className="mb-6 flex gap-4 text-sm">
-        <Link href="/admin">글 목록</Link>
-        <Link href="/admin/new">새 글</Link>
-        <a href="/api/auth/logout">로그아웃</a>
+      <nav className="mb-6 flex gap-2 border-b border-line py-3 text-sm">
+        <Link href="/admin" className="px-1 hover:term-sel">
+          글 목록
+        </Link>
+        <Link href="/admin/new" className="px-1 hover:term-sel">
+          새 글
+        </Link>
+        <a href="/api/auth/logout" className="px-1 text-dim hover:term-sel">
+          로그아웃
+        </a>
       </nav>
-      {children}
+      <div className="pb-6">{children}</div>
     </>
   );
 }
