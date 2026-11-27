@@ -8,6 +8,11 @@ resource "aws_cognito_user_pool" "main" {
   mfa_configuration        = "OPTIONAL"
   deletion_protection      = "ACTIVE"
 
+  # 생성 후 바꿀 수 없다. 이메일 대소문자가 달라도 같은 사용자로 본다.
+  username_configuration {
+    case_sensitive = false
+  }
+
   admin_create_user_config {
     allow_admin_create_user_only = true
   }

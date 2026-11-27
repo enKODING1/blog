@@ -54,13 +54,61 @@ resource "aws_iam_role_policy" "web_ssr" {
   policy = data.aws_iam_policy_document.web_ssr.json
 }
 
+# Amplify 서비스 역할: 빌드·SSR 로그를 CloudWatch Logs 에 쓴다
+data "aws_iam_policy_document" "web_amplify_assume" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["amplify.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [local.account_id]
+    }
+  }
+}
+
+resource "aws_iam_role" "web_amplify" {
+  name               = "${local.name_prefix}-web-amplify-role"
+  assume_role_policy = data.aws_iam_policy_document.web_amplify_assume.json
+}
+
+data "aws_iam_policy_document" "web_amplify" {
+  statement {
+    sid    = "AmplifyLogs"
+    effect = "Allow"
+    actions = [
+      "logs:CreateLogGroup",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
+      "logs:DescribeLogGroups",
+    ]
+    resources = [
+      "arn:aws:logs:${local.region}:${local.account_id}:log-group:/aws/amplify/*",
+      "arn:aws:logs:${local.region}:${local.account_id}:log-group:/aws/amplify/*:*",
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "web_amplify" {
+  name   = "${local.name_prefix}-web-amplify-policy"
+  role   = aws_iam_role.web_amplify.id
+  policy = data.aws_iam_policy_document.web_amplify.json
+}
+
 # 앱은 콘솔에서 GitHub App 으로 연결해 만든 뒤 import 한다.
 # 저장소 연결·토큰·빌드 스펙(amplify.yml)은 콘솔/저장소가 관리하므로 무시한다.
 resource "aws_amplify_app" "web" {
-  name             = "${local.name_prefix}-web-site-amplify"
-  repository       = "https://github.com/${var.github_repository}"
-  platform         = "WEB_COMPUTE"
-  compute_role_arn = aws_iam_role.web_ssr.arn
+  name                 = "${local.name_prefix}-web-site-amplify"
+  repository           = "https://github.com/${var.github_repository}"
+  platform             = "WEB_COMPUTE"
+  compute_role_arn     = aws_iam_role.web_ssr.arn
+  iam_service_role_arn = aws_iam_role.web_amplify.arn
 
   # amplify.yml 이 BLOG_*/COGNITO_* 를 .env.production 으로 복사한다. 값에 끝 슬래시 없음.
   environment_variables = {
