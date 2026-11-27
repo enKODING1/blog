@@ -9,6 +9,10 @@ export default async function Home() {
 
   return (
     <div className="py-6">
+      {/* Focus target after a transition; not a data-line. */}
+      <h1 tabIndex={-1} className="sr-only">
+        글 목록
+      </h1>
       <p data-line className="text-dim">
         $ ls posts --sort=date
       </p>

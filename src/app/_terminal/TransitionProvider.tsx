@@ -61,7 +61,8 @@ export function TransitionProvider({
   const restore = useCallback(() => {
     stopExit();
     if (hiddenRef.current.length) {
-      gsap.set(hiddenRef.current, { autoAlpha: 1 });
+      // clipPath too: an enter tween killed mid-way leaves lines clipped.
+      gsap.set(hiddenRef.current, { autoAlpha: 1, clearProps: "clipPath" });
     }
     hiddenRef.current = [];
     intentRef.current = null;
@@ -71,8 +72,9 @@ export function TransitionProvider({
     (href: string) => {
       const fromPath = pathnameRef.current;
       intentRef.current = pathOf(href);
+      // Scroll is left to router.push's default (scroll: true), which runs
+      // only once the new page renders, so a restored page (R4) stays put.
       router.push(href);
-      window.scrollTo(0, 0);
       clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
         timerRef.current = undefined;
@@ -107,6 +109,9 @@ export function TransitionProvider({
         push(href);
         return;
       }
+      // Stop a still-running PageEnter tween first, or its completion would
+      // fight the exit over these lines.
+      gsap.killTweensOf(lines);
       hiddenRef.current = lines;
       exitRef.current = gsap.to(lines, {
         autoAlpha: 0,

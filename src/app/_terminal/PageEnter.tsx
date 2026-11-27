@@ -69,7 +69,8 @@ export default function PageEnter({ children }: { children: React.ReactNode }) {
             TIMINGS.enterMax - TIMINGS.enterLine
           ),
         },
-        clearProps: "clipPath,opacity,visibility",
+        // clipPath only: opacity/visibility may belong to a later exit.
+        clearProps: "clipPath",
         onComplete: focusTitle,
       });
     },

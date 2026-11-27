@@ -16,9 +16,11 @@ export const metadata: Metadata = {
 };
 
 // Runs before first paint: hide main's lines so PageEnter can type them in
-// without a flash. Mirrors PageEnter's skip rules; the timeout reveals the
-// page anyway if hydration never happens.
-const ENTER_GUARD = `try{var d=document.documentElement;if(!location.pathname.startsWith("/admin")&&!matchMedia("(prefers-reduced-motion: reduce)").matches){d.setAttribute("data-enter","");setTimeout(function(){d.removeAttribute("data-enter")},3000)}}catch(e){}`;
+// without a flash. Its conditions (not /admin, motion allowed) must stay in
+// sync with PageEnter's skip rules, or lines stay clipped / flash. If
+// hydration takes longer than 800ms the guard lifts and PageEnter's
+// `firstLoad && !guarded` branch shows the page without animating (R8).
+const ENTER_GUARD = `try{var d=document.documentElement;if(!location.pathname.startsWith("/admin")&&!matchMedia("(prefers-reduced-motion: reduce)").matches){d.setAttribute("data-enter","");setTimeout(function(){d.removeAttribute("data-enter")},800)}}catch(e){}`;
 
 export default function RootLayout({
   children,
