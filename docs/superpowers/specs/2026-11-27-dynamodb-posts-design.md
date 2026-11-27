@@ -50,13 +50,13 @@
 
 ## 접근 방식
 
-| 안 | 내용 | 장점 | 단점 |
-|---|---|---|---|
-| **Amplify Hosting (선택)** | 저장소 연결, Amplify가 빌드·SSR·CDN·인증서 담당 | 가장 손이 덜 감, 직접 만드는 Lambda 없음(Rust 규칙과 충돌 없음) | 내부 구성 제어 제한, PR #2의 S3/CloudFront 구성 대부분 불필요 |
-| OpenNext + 직접 구성 | CloudFront/Lambda/S3를 Terraform으로 전부 관리 | 완전한 제어, PR #2 재사용 | 부품 많음, Node Lambda라 Rust 규칙 예외 필요 |
-| Lambda Web Adapter + standalone | Lambda 하나로 Next 서버 실행 | 단순, PR #2 재사용 | ISR·이미지 최적화 직접 챙김, Rust 규칙 예외 필요 |
-| 정적 유지 + Rust API + 발행 시 재빌드 | | Rust 규칙 그대로 | 반영 지연, 앱 이원화 |
-| ECS Fargate 등 상시 컨테이너 | | 단순 | 상시 비용 → 제외 |
+| 안                                    | 내용                                            | 장점                                                            | 단점                                                          |
+| ------------------------------------- | ----------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------- |
+| **Amplify Hosting (선택)**            | 저장소 연결, Amplify가 빌드·SSR·CDN·인증서 담당 | 가장 손이 덜 감, 직접 만드는 Lambda 없음(Rust 규칙과 충돌 없음) | 내부 구성 제어 제한, PR #2의 S3/CloudFront 구성 대부분 불필요 |
+| OpenNext + 직접 구성                  | CloudFront/Lambda/S3를 Terraform으로 전부 관리  | 완전한 제어, PR #2 재사용                                       | 부품 많음, Node Lambda라 Rust 규칙 예외 필요                  |
+| Lambda Web Adapter + standalone       | Lambda 하나로 Next 서버 실행                    | 단순, PR #2 재사용                                              | ISR·이미지 최적화 직접 챙김, Rust 규칙 예외 필요              |
+| 정적 유지 + Rust API + 발행 시 재빌드 |                                                 | Rust 규칙 그대로                                                | 반영 지연, 앱 이원화                                          |
+| ECS Fargate 등 상시 컨테이너          |                                                 | 단순                                                            | 상시 비용 → 제외                                              |
 
 사용자가 Amplify Hosting을 선택했다.
 
@@ -112,16 +112,16 @@
 
 테이블 `blog-prod-post-content-table`, 온디맨드, PITR 켬, 삭제 보호 켬.
 
-| 속성 | 설명 |
-|---|---|
-| `pk` (PK) | `POST#{slug}` |
-| `slug` | 경로, 생성 후 변경 불가 |
-| `title`, `category`, `date`(YYYY-MM-DD) | 기존 frontmatter |
-| `content` | 마크다운 원문 |
-| `status` | `draft` / `published` |
-| `createdAt`, `updatedAt` | ISO 시각 |
-| `gsi1pk` | 발행 글만 `PUBLISHED` |
-| `gsi1sk` | `{date}#{slug}` |
+| 속성                                    | 설명                    |
+| --------------------------------------- | ----------------------- |
+| `pk` (PK)                               | `POST#{slug}`           |
+| `slug`                                  | 경로, 생성 후 변경 불가 |
+| `title`, `category`, `date`(YYYY-MM-DD) | 기존 frontmatter        |
+| `content`                               | 마크다운 원문           |
+| `status`                                | `draft` / `published`   |
+| `createdAt`, `updatedAt`                | ISO 시각                |
+| `gsi1pk`                                | 발행 글만 `PUBLISHED`   |
+| `gsi1sk`                                | `{date}#{slug}`         |
 
 - GSI `gsi1`: 공개 목록 Query(내림차순). 관리자 목록은 Scan.
 
