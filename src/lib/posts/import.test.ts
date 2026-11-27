@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { parseLegacyPost } from "@/lib/posts/import";
+import { checkImageRef, parseLegacyPost } from "@/lib/posts/import";
 
 const fixture = (name: string) =>
   readFileSync(path.join(__dirname, "__fixtures__", name), "utf8");
@@ -59,5 +59,23 @@ describe("parseLegacyPost", () => {
     expect(() =>
       parseLegacyPost("Bad Slug.md", "---\ntitle: x\n---\n")
     ).toThrow();
+  });
+});
+
+describe("checkImageRef", () => {
+  const pub = "/repo/public";
+  it.each([
+    "/images/posts/../../x.png",
+    "/images/posts/s/my%20pic.png",
+    "/images/posts/s/사진.png",
+    "/images/posts/s/a.png?x=1",
+    "/images/posts/s/a.png#h",
+    "/images/posts/s/sub/a.png",
+    "/images/posts/s/..",
+  ])("거부: %s", ref => {
+    expect(checkImageRef(ref, pub)).not.toBeNull();
+  });
+  it("허용: 정상 경로", () => {
+    expect(checkImageRef("/images/posts/fixed/float_size.png", pub)).toBeNull();
   });
 });

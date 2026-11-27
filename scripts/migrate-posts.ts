@@ -4,7 +4,7 @@
  * 다시 실행해도 같은 결과(덮어쓰기). */
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
-import { parseLegacyPost } from "@/lib/posts/import";
+import { checkImageRef, parseLegacyPost } from "@/lib/posts/import";
 import type { Post } from "@/lib/posts/types";
 
 const ROOT = process.cwd();
@@ -37,13 +37,25 @@ function buildPlans(): PostPlan[] {
   const files = readdirSync(POSTS_DIR)
     .filter(f => f.endsWith(".md"))
     .sort();
-  return files.map(f => {
+  const rejected: string[] = [];
+  const plans = files.map(f => {
     const { post, images } = parseLegacyPost(
       f,
       readFileSync(path.join(POSTS_DIR, f), "utf8")
     );
-    return { post, images: images.map(planImage) };
+    const ok = images.filter(ref => {
+      const why = checkImageRef(ref, IMAGES_DIR);
+      if (why) rejected.push(`${f}: ${ref} (${why})`);
+      return !why;
+    });
+    return { post, images: ok.map(planImage) };
   });
+  if (rejected.length > 0) {
+    console.error("허용되지 않는 이미지 경로:");
+    for (const r of rejected) console.error(`  ${r}`);
+    process.exit(1);
+  }
+  return plans;
 }
 
 async function main() {
