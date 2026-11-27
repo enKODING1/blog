@@ -39,6 +39,10 @@
 - 리소스 이름 `blog-prod-{domain}-{function}-{type}`, 태그 Project=blog / Environment=prod / ManagedBy=terraform. S3 버킷은 계정 ID 접미사.
 - IaC는 Terraform. 상태는 `ddobagi-shared-tfstate-bucket-910107943804`를 키로 분리.
 - DNS는 Cloudflare (DNS only).
+- CI / 브랜치 규칙 (PR #4 `ci/pr-checks`): main은 PR 필수, 필수 검사 `Lint / Build`와 `Secret scan`(strict, 관리자 포함). 머지 순서는 PR #4 → PR #3 → 이 작업.
+  - `scripts/check-build.mjs`는 정적 export(`out/`)를 전제로 한다. 정적 export를 없애므로 이 검사와 `ci.yml`의 해당 단계를 Amplify/SSR 빌드(`.next/`)에 맞게 바꿔야 `Lint / Build`가 통과한다.
+  - `infra/`·`infra-shared/`를 추가하면 `ci.yml`에 `terraform fmt -check` / `validate` job을 넣고 main 보호 규칙의 필수 검사에도 추가한다.
+  - Terraform 뼈대(provider, backend, 태그 규칙)는 닫힌 PR #2의 커밋 `22f47a7`에서 가져온다. 상태 키 `blog/prod/terraform.tfstate`는 비어 있어 그대로 이어 쓴다.
 - CLAUDE.md: Lambda는 Rust. → Amplify 구성에서는 직접 작성하는 Lambda가 없다. 나중에 별도 Lambda가 필요해지면 Rust로 쓴다.
 
 ## 접근 방식
