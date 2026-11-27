@@ -6,6 +6,7 @@ import { getPublishedPost } from "@/lib/posts/repo";
 import { renderMarkdown } from "@/lib/markdown";
 import { isValidSlug } from "@/lib/posts/validate";
 import Scramble from "@/app/_terminal/Scramble";
+import PostKeys from "@/app/_terminal/PostKeys";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +54,7 @@ export default async function PostPage({ params }: Props) {
           ← cd ..
         </TransitionLink>
       </p>
+      <PostKeys />
     </div>
   );
 }

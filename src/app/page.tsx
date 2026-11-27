@@ -1,6 +1,7 @@
 import { listPublishedPosts } from "@/lib/posts/repo";
 import { TransitionLink } from "@/app/_terminal/TransitionProvider";
 import Scramble from "./_terminal/Scramble";
+import ListKeyboardNav from "./_terminal/ListKeyboardNav";
 
 export const dynamic = "force-dynamic";
 
@@ -21,24 +22,26 @@ export default async function Home() {
           아직 글이 없습니다.
         </p>
       ) : (
-        <ul className="mt-2">
-          {posts.map((post, i) => (
-            <li key={post.slug} data-line data-index={i} className="group">
-              <TransitionLink
-                href={`/posts/${post.slug}`}
-                className="grid grid-cols-[auto_1fr] gap-x-4 px-1 hover:term-sel group-aria-selected:term-sel sm:grid-cols-[auto_auto_1fr]"
-              >
-                <span className="text-dim">{post.date}</span>
-                <span className="text-accent">{post.category}</span>
-                <Scramble
-                  trigger="hover"
-                  text={post.title}
-                  className="col-span-2 sm:col-span-1"
-                />
-              </TransitionLink>
-            </li>
-          ))}
-        </ul>
+        <ListKeyboardNav>
+          <ul className="mt-2">
+            {posts.map((post, i) => (
+              <li key={post.slug} data-line data-index={i} className="group">
+                <TransitionLink
+                  href={`/posts/${post.slug}`}
+                  className="grid grid-cols-[auto_1fr] gap-x-4 px-1 hover:term-sel group-focus-within:term-sel sm:grid-cols-[auto_auto_1fr]"
+                >
+                  <span className="text-dim">{post.date}</span>
+                  <span className="text-accent">{post.category}</span>
+                  <Scramble
+                    trigger="hover"
+                    text={post.title}
+                    className="col-span-2 sm:col-span-1"
+                  />
+                </TransitionLink>
+              </li>
+            ))}
+          </ul>
+        </ListKeyboardNav>
       )}
     </div>
   );
