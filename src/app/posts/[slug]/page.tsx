@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPublishedPost } from "@/lib/posts/repo";
 import { renderMarkdown } from "@/lib/markdown";
+import { isValidSlug } from "@/lib/posts/validate";
 
 export const dynamic = "force-dynamic";
 
@@ -12,12 +13,14 @@ const getPost = cache(getPublishedPost);
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
+  if (!isValidSlug(slug)) notFound();
   const post = await getPost(slug);
   return { title: post?.title };
 }
 
 export default async function PostPage({ params }: Props) {
   const { slug } = await params;
+  if (!isValidSlug(slug)) notFound();
   const post = await getPost(slug);
   if (!post) notFound();
 

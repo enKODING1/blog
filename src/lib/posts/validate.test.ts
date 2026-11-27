@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { validatePostInput } from "@/lib/posts/validate";
+import {
+  isValidSlug,
+  MAX_SLUG_LENGTH,
+  validatePostInput,
+} from "@/lib/posts/validate";
 
 const base = {
   slug: "browser-rendering",
@@ -89,5 +93,41 @@ describe("validatePostInput", () => {
   it("collects multiple errors", () => {
     const e = errorsOf({ slug: "Bad", title: "" });
     expect(Object.keys(e ?? {}).sort()).toEqual(["slug", "title"]);
+  });
+});
+
+describe("isValidSlug", () => {
+  it.each(["a", "fixed", "42-piscine", "a".repeat(MAX_SLUG_LENGTH)])(
+    "accepts %j",
+    slug => {
+      expect(isValidSlug(slug)).toBe(true);
+    }
+  );
+
+  it.each([
+    "",
+    "A",
+    "a--b",
+    "-a",
+    "a-",
+    "a/b",
+    "../x",
+    "한글",
+    "a".repeat(MAX_SLUG_LENGTH + 1),
+    5,
+    undefined,
+  ])("rejects %j", slug => {
+    expect(isValidSlug(slug)).toBe(false);
+  });
+});
+
+describe("validatePostInput slug length", () => {
+  it("accepts 200 chars and rejects 201", () => {
+    expect(
+      validatePostInput({ ...base, slug: "a".repeat(MAX_SLUG_LENGTH) }).ok
+    ).toBe(true);
+    expect(errorsOf({ slug: "a".repeat(MAX_SLUG_LENGTH + 1) })).toHaveProperty(
+      "slug"
+    );
   });
 });

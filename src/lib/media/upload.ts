@@ -3,7 +3,7 @@ import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { getS3 } from "@/lib/aws";
 import { getDataConfig } from "@/lib/config";
-import { SLUG_PATTERN } from "@/lib/posts/validate";
+import { isValidSlug } from "@/lib/posts/validate";
 
 // SVG is deliberately excluded: it can carry scripts.
 export const ALLOWED_IMAGE_TYPES: Readonly<Record<string, string>> = {
@@ -19,7 +19,7 @@ export async function createImageUpload(p: {
   contentType: string;
   size: number;
 }): Promise<{ uploadUrl: string; markdownPath: string }> {
-  if (typeof p.slug !== "string" || !SLUG_PATTERN.test(p.slug)) {
+  if (!isValidSlug(p.slug)) {
     throw new Error("Invalid slug");
   }
   const ext = Object.hasOwn(ALLOWED_IMAGE_TYPES, p.contentType)

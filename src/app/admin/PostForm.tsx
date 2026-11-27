@@ -14,10 +14,10 @@ import {
   uploadPlaceholder,
 } from "@/lib/media/image-markdown";
 import type { PostInput } from "@/lib/posts/types";
+import { isValidSlug } from "@/lib/posts/validate";
+import { seoulToday } from "@/lib/date";
 
 type Props = { mode: "create" | "update"; initial?: PostInput };
-
-const today = () => new Date().toISOString().slice(0, 10);
 
 const inputClass = "w-full rounded border px-2 py-1";
 
@@ -27,7 +27,7 @@ export default function PostForm({ mode, initial }: Props) {
       slug: "",
       title: "",
       category: "",
-      date: today(),
+      date: seoulToday(),
       content: "",
       status: "draft",
     }
@@ -62,8 +62,13 @@ export default function PostForm({ mode, initial }: Props) {
   const uploadImages = (files: File[], textarea: HTMLTextAreaElement) => {
     const images = files.filter(f => f.type.startsWith("image/"));
     if (images.length === 0) return;
-    setUploadError(null);
     const slug = form.slug;
+    // Images live under the post's slug, so it has to be settled first.
+    if (!isValidSlug(slug)) {
+      setUploadError("주소(slug)를 먼저 입력하세요");
+      return;
+    }
+    setUploadError(null);
     const jobs = images.map(file => ({
       file,
       placeholder: uploadPlaceholder(crypto.randomUUID()),
@@ -101,7 +106,6 @@ export default function PostForm({ mode, initial }: Props) {
         } catch {
           swap(placeholder, "");
           setUploadError("이미지를 올리지 못했습니다");
-          setFailed(true);
         } finally {
           trackUpload(-1);
         }

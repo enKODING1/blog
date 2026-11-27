@@ -1,7 +1,17 @@
 import type { PostInput } from "@/lib/posts/types";
 
 export const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+export const MAX_SLUG_LENGTH = 200;
 export const MAX_CONTENT_BYTES = 350_000;
+
+/** True when `slug` is a well-formed post address (pattern and length). */
+export function isValidSlug(slug: unknown): slug is string {
+  return (
+    typeof slug === "string" &&
+    slug.length <= MAX_SLUG_LENGTH &&
+    SLUG_PATTERN.test(slug)
+  );
+}
 
 export type ValidationResult =
   | { ok: true; value: PostInput }
@@ -31,6 +41,8 @@ export function validatePostInput(input: unknown): ValidationResult {
   const slug = str("slug");
   if (!SLUG_PATTERN.test(slug)) {
     errors.slug = "slug는 소문자, 숫자, 하이픈만 사용할 수 있습니다.";
+  } else if (slug.length > MAX_SLUG_LENGTH) {
+    errors.slug = `slug는 ${MAX_SLUG_LENGTH}자를 넘을 수 없습니다.`;
   }
   const title = str("title");
   if (!title.trim()) errors.title = "제목을 입력하세요.";
