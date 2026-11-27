@@ -7,6 +7,12 @@ import {
   requestImageUpload,
   savePost,
 } from "./actions";
+import {
+  imageMarkdown,
+  insertAt,
+  replacePlaceholder,
+  uploadPlaceholder,
+} from "@/lib/media/image-markdown";
 import type { PostInput } from "@/lib/posts/types";
 
 type Props = { mode: "create" | "update"; initial?: PostInput };
@@ -40,38 +46,55 @@ export default function PostForm({ mode, initial }: Props) {
 
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  // Uploads each image file to S3 and inserts markdown at the cursor. Any
-  // failure leaves the text untouched and shows an inline error.
-  const uploadImages = async (files: File[], textarea: HTMLTextAreaElement) => {
+  // Each file gets a unique placeholder inserted synchronously at the cursor,
+  // so later typing or overlapping uploads cannot shift the insert position.
+  // The placeholder is swapped for the final markdown (or removed on failure)
+  // by searching for it, and left alone if the user already deleted it.
+  const uploadImages = (files: File[], textarea: HTMLTextAreaElement) => {
     const images = files.filter(f => f.type.startsWith("image/"));
     if (images.length === 0) return;
     setUploadError(null);
+    const slug = form.slug;
+    const jobs = images.map(file => ({
+      file,
+      placeholder: uploadPlaceholder(crypto.randomUUID()),
+    }));
     const cursor = textarea.selectionStart;
-    let inserted = "";
-    try {
-      for (const file of images) {
-        const { uploadUrl, markdownPath } = await requestImageUpload(
-          form.slug,
-          file.type,
-          file.size
-        );
-        const res = await fetch(uploadUrl, {
-          method: "PUT",
-          body: file,
-          headers: { "Content-Type": file.type },
-        });
-        if (!res.ok) throw new Error("upload failed: " + res.status);
-        inserted += `![${file.name}](${markdownPath})`;
-      }
-    } catch {
-      setUploadError("이미지를 올리지 못했습니다");
-      setFailed(true);
-      return;
-    }
     setForm(f => ({
       ...f,
-      content: f.content.slice(0, cursor) + inserted + f.content.slice(cursor),
+      content: insertAt(
+        f.content,
+        cursor,
+        jobs.map(j => j.placeholder).join("")
+      ),
     }));
+    const swap = (placeholder: string, replacement: string) =>
+      setForm(f => ({
+        ...f,
+        content: replacePlaceholder(f.content, placeholder, replacement),
+      }));
+    for (const { file, placeholder } of jobs) {
+      void (async () => {
+        try {
+          const { uploadUrl, markdownPath } = await requestImageUpload(
+            slug,
+            file.type,
+            file.size
+          );
+          const res = await fetch(uploadUrl, {
+            method: "PUT",
+            body: file,
+            headers: { "Content-Type": file.type },
+          });
+          if (!res.ok) throw new Error("upload failed: " + res.status);
+          swap(placeholder, imageMarkdown(file.name, markdownPath));
+        } catch {
+          swap(placeholder, "");
+          setUploadError("이미지를 올리지 못했습니다");
+          setFailed(true);
+        }
+      })();
+    }
   };
 
   const onSave = () =>
@@ -202,14 +225,14 @@ export default function PostForm({ mode, initial }: Props) {
             const files = Array.from(e.clipboardData.files);
             if (files.some(f => f.type.startsWith("image/"))) {
               e.preventDefault();
-              void uploadImages(files, e.currentTarget);
+              uploadImages(files, e.currentTarget);
             }
           }}
           onDrop={e => {
             const files = Array.from(e.dataTransfer.files);
             if (files.some(f => f.type.startsWith("image/"))) {
               e.preventDefault();
-              void uploadImages(files, e.currentTarget);
+              uploadImages(files, e.currentTarget);
             }
           }}
         />

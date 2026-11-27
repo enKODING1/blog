@@ -39,7 +39,10 @@ export async function createImageUpload(p: {
       ContentType: p.contentType,
       ContentLength: p.size,
     }),
-    { expiresIn: 300 }
+    {
+      expiresIn: 300,
+      signableHeaders: new Set(["content-type", "content-length"]),
+    }
   );
   return { uploadUrl, markdownPath: "/media/" + key };
 }

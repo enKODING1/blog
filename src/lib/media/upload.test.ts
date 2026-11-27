@@ -10,7 +10,7 @@ vi.mock("@/lib/config", () => ({
   }),
 }));
 
-import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { getS3 } from "@/lib/aws";
 import { createImageUpload, MAX_IMAGE_BYTES } from "./upload";
@@ -42,7 +42,7 @@ describe("createImageUpload", () => {
       ContentType: "image/png",
       ContentLength: 1234,
     });
-    expect(opts).toEqual({ expiresIn: 300 });
+    expect(opts).toMatchObject({ expiresIn: 300 });
   });
 
   it.each([
@@ -95,5 +95,32 @@ describe("createImageUpload", () => {
     await expect(
       createImageUpload({ slug: "a", contentType: "constructor", size: 1 })
     ).rejects.toThrow();
+  });
+});
+
+describe("createImageUpload signing (real presigner, no network)", () => {
+  it("signs content-type and content-length", async () => {
+    const actual = await vi.importActual<
+      typeof import("@aws-sdk/s3-request-presigner")
+    >("@aws-sdk/s3-request-presigner");
+    vi.mocked(getSignedUrl).mockImplementation(actual.getSignedUrl);
+    vi.mocked(getS3).mockReturnValue(
+      new S3Client({
+        region: "ap-northeast-2",
+        credentials: { accessKeyId: "AKIDTEST", secretAccessKey: "secret" },
+      }) as never
+    );
+    const { uploadUrl, markdownPath } = await createImageUpload({
+      slug: "fixed",
+      contentType: "image/png",
+      size: 1234,
+    });
+    const url = new URL(uploadUrl);
+    const signed = (url.searchParams.get("X-Amz-SignedHeaders") ?? "").split(
+      ";"
+    );
+    expect(signed).toContain("content-length");
+    expect(signed).toContain("content-type");
+    expect(url.pathname).toContain(markdownPath.replace("/media/", ""));
   });
 });
