@@ -47,3 +47,8 @@ infra/*.tfstate
 infra/*.tfstate.*
 infra/*.tfvars
 !infra/*.tfvars.example
+infra-shared/**/.terraform/
+infra-shared/**/*.tfstate
+infra-shared/**/*.tfstate.*
+infra-shared/**/*.tfvars
+!infra-shared/**/*.tfvars.example
