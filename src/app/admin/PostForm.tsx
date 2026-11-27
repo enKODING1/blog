@@ -28,15 +28,15 @@ export default function PostForm({ mode, initial }: Props) {
   const set = <K extends keyof PostInput>(k: K, v: PostInput[K]) =>
     setForm(f => ({ ...f, [k]: v }));
 
-  // A rejected action means the session is gone: go log in, then come back.
-  const toLogin = () => {
-    const next = window.location.pathname;
-    window.location.href = "/api/auth/login?next=" + encodeURIComponent(next);
-  };
+  // A rejected action keeps the form as is and offers a login link instead.
+  const [failed, setFailed] = useState(false);
+  const loginHref = () =>
+    "/api/auth/login?next=" + encodeURIComponent(window.location.pathname);
 
   const onSave = () =>
     startTransition(async () => {
       try {
+        setFailed(false);
         const res = await savePost(mode, form);
         if (res.ok) {
           window.location.href = "/admin";
@@ -44,7 +44,7 @@ export default function PostForm({ mode, initial }: Props) {
           setErrors(res.errors);
         }
       } catch {
-        toLogin();
+        setFailed(true);
       }
     });
 
@@ -53,7 +53,7 @@ export default function PostForm({ mode, initial }: Props) {
       try {
         setHtml(await previewMarkdown(form.content));
       } catch {
-        toLogin();
+        setFailed(true);
       }
     });
 
@@ -66,7 +66,7 @@ export default function PostForm({ mode, initial }: Props) {
         // redirect() from a Server Action is handled by Next; anything else
         // here means the session is gone.
         if (isRedirect(err)) throw err;
-        toLogin();
+        setFailed(true);
       }
     });
   };
@@ -87,6 +87,19 @@ export default function PostForm({ mode, initial }: Props) {
 
   return (
     <div className="space-y-4">
+      {failed && (
+        <p className="text-sm text-red-600">
+          저장하지 못했습니다. 로그인이 만료되었을 수 있습니다.{" "}
+          <a
+            href={loginHref()}
+            target="_blank"
+            rel="noopener"
+            className="underline"
+          >
+            로그인
+          </a>
+        </p>
+      )}
       {errors._ && <p className="text-sm text-red-600">{errors._}</p>}
       {field(
         "제목",
