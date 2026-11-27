@@ -80,14 +80,24 @@ export default function BlockCursor() {
       ghostY(e.clientY);
     };
     const hide = () => setVisible(false);
+    // pointerleave does not bubble, so it is attached to <html> directly;
+    // mouseout with a null relatedTarget covers leaving the window.
+    const onLeave = (e: PointerEvent) => {
+      if (e.pointerType === "mouse") hide();
+    };
+    const onMouseOut = (e: MouseEvent) => {
+      if (e.relatedTarget === null) hide();
+    };
 
     document.addEventListener("pointermove", onMove);
-    document.addEventListener("pointerleave", hide);
+    root.addEventListener("pointerleave", onLeave);
+    document.addEventListener("mouseout", onMouseOut);
     window.addEventListener("blur", hide);
 
     return () => {
       document.removeEventListener("pointermove", onMove);
-      document.removeEventListener("pointerleave", hide);
+      root.removeEventListener("pointerleave", onLeave);
+      document.removeEventListener("mouseout", onMouseOut);
       window.removeEventListener("blur", hide);
       gsap.killTweensOf([block, ghost]);
       root.classList.remove("block-cursor");
