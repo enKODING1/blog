@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@aws-sdk/s3-request-presigner", () => ({ getSignedUrl: vi.fn() }));
 vi.mock("@/lib/aws", () => ({ getS3: vi.fn(() => ({ fake: "s3" })) }));
@@ -10,7 +10,7 @@ vi.mock("@/lib/config", () => ({
   }),
 }));
 
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { getS3 } from "@/lib/aws";
 import { createImageUpload, MAX_IMAGE_BYTES } from "./upload";
@@ -98,29 +98,66 @@ describe("createImageUpload", () => {
   });
 });
 
-describe("createImageUpload signing (real presigner, no network)", () => {
-  it("signs content-type and content-length", async () => {
-    const actual = await vi.importActual<
-      typeof import("@aws-sdk/s3-request-presigner")
-    >("@aws-sdk/s3-request-presigner");
-    vi.mocked(getSignedUrl).mockImplementation(actual.getSignedUrl);
-    vi.mocked(getS3).mockReturnValue(
-      new S3Client({
-        region: "ap-northeast-2",
-        credentials: { accessKeyId: "AKIDTEST", secretAccessKey: "secret" },
-      }) as never
-    );
-    const { uploadUrl, markdownPath } = await createImageUpload({
+describe("createImageUpload signing (real client and presigner, no network)", () => {
+  const envKeys = [
+    "BLOG_AWS_REGION",
+    "BLOG_POSTS_TABLE",
+    "BLOG_MEDIA_BUCKET",
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY",
+    "AWS_SESSION_TOKEN",
+    "AWS_PROFILE",
+  ];
+  const saved: Record<string, string | undefined> = {};
+
+  beforeEach(() => {
+    for (const k of envKeys) saved[k] = process.env[k];
+    process.env.BLOG_AWS_REGION = "ap-northeast-2";
+    process.env.BLOG_POSTS_TABLE = "t";
+    process.env.BLOG_MEDIA_BUCKET = "test-bucket";
+    process.env.AWS_ACCESS_KEY_ID = "AKIDTEST";
+    process.env.AWS_SECRET_ACCESS_KEY = "secret";
+    delete process.env.AWS_SESSION_TOKEN;
+    delete process.env.AWS_PROFILE;
+    vi.resetModules();
+    vi.doUnmock("@/lib/aws");
+    vi.doUnmock("@/lib/config");
+    vi.doUnmock("@aws-sdk/s3-request-presigner");
+  });
+
+  afterEach(() => {
+    for (const k of envKeys) {
+      if (saved[k] === undefined) delete process.env[k];
+      else process.env[k] = saved[k];
+    }
+    vi.resetModules();
+    vi.restoreAllMocks();
+  });
+
+  it("signs content-type and content-length without a checksum", async () => {
+    const config = await import("@/lib/config");
+    const aws = await import("@/lib/aws");
+    config.resetConfigForTests();
+    aws.resetAwsClientsForTests();
+    const { createImageUpload: create } = await import("./upload");
+
+    const { uploadUrl, markdownPath } = await create({
       slug: "fixed",
       contentType: "image/png",
       size: 1234,
     });
     const url = new URL(uploadUrl);
+    expect(url.hostname).toContain("test-bucket");
+    expect(url.pathname).toContain(markdownPath.replace("/media/", ""));
     const signed = (url.searchParams.get("X-Amz-SignedHeaders") ?? "").split(
       ";"
     );
     expect(signed).toContain("content-length");
     expect(signed).toContain("content-type");
-    expect(url.pathname).toContain(markdownPath.replace("/media/", ""));
+    expect(url.searchParams.has("x-amz-checksum-crc32")).toBe(false);
+    expect(url.searchParams.has("x-amz-sdk-checksum-algorithm")).toBe(false);
+
+    aws.resetAwsClientsForTests();
+    config.resetConfigForTests();
   });
 });

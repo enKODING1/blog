@@ -15,6 +15,18 @@ export function getDdb(): DynamoDBDocumentClient {
 }
 
 export function getS3(): S3Client {
-  s3 ??= new S3Client({ region: getDataConfig().region });
+  // The default "WHEN_SUPPORTED" puts an empty-body CRC32 checksum into
+  // presigned PutObject URLs, so S3 rejects the browser's real upload.
+  s3 ??= new S3Client({
+    region: getDataConfig().region,
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
+  });
   return s3;
+}
+
+/** Test-only: clears memoized clients. */
+export function resetAwsClientsForTests(): void {
+  ddb = undefined;
+  s3 = undefined;
 }
