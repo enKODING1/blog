@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/session";
 import { renderMarkdown } from "@/lib/markdown";
+import { createImageUpload } from "@/lib/media/upload";
 import {
   createPost,
   deletePost,
@@ -63,4 +64,11 @@ export async function previewMarkdown(md: string): Promise<string> {
   return renderMarkdown(md);
 }
 
-// Task 7: requestImageUpload(slug, contentType, size)
+export async function requestImageUpload(
+  slug: string,
+  contentType: string,
+  size: number
+): Promise<{ uploadUrl: string; markdownPath: string }> {
+  await requireAdmin();
+  return createImageUpload({ slug, contentType, size });
+}

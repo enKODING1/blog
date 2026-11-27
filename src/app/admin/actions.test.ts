@@ -11,6 +11,10 @@ vi.mock("@/lib/posts/repo", async orig => ({
   deletePost: vi.fn(),
 }));
 vi.mock("@/lib/markdown", () => ({ renderMarkdown: vi.fn() }));
+vi.mock("@/lib/media/upload", async orig => ({
+  ...(await orig<typeof import("@/lib/media/upload")>()),
+  createImageUpload: vi.fn(),
+}));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 
@@ -25,7 +29,13 @@ import {
   updatePost,
 } from "@/lib/posts/repo";
 import { renderMarkdown } from "@/lib/markdown";
-import { previewMarkdown, removePost, savePost } from "./actions";
+import { createImageUpload } from "@/lib/media/upload";
+import {
+  previewMarkdown,
+  removePost,
+  requestImageUpload,
+  savePost,
+} from "./actions";
 
 const input = {
   slug: "hello-world",
@@ -45,6 +55,13 @@ describe("admin actions", () => {
   describe("without login", () => {
     beforeEach(() => {
       vi.mocked(requireAdmin).mockRejectedValue(new UnauthorizedError());
+    });
+
+    it("rejects requestImageUpload and never presigns", async () => {
+      await expect(
+        requestImageUpload("hello-world", "image/png", 10)
+      ).rejects.toBeInstanceOf(UnauthorizedError);
+      expect(createImageUpload).not.toHaveBeenCalled();
     });
 
     it("rejects savePost(create) and never touches the repo", async () => {
@@ -136,5 +153,21 @@ describe("admin actions", () => {
   it("previewMarkdown renders for admins", async () => {
     vi.mocked(renderMarkdown).mockResolvedValue("<h1>x</h1>");
     expect(await previewMarkdown("# x")).toBe("<h1>x</h1>");
+  });
+
+  it("requestImageUpload delegates to createImageUpload after auth", async () => {
+    vi.mocked(createImageUpload).mockResolvedValue({
+      uploadUrl: "https://u",
+      markdownPath: "/media/posts/a/x.png",
+    });
+    await expect(requestImageUpload("a", "image/png", 5)).resolves.toEqual({
+      uploadUrl: "https://u",
+      markdownPath: "/media/posts/a/x.png",
+    });
+    expect(createImageUpload).toHaveBeenCalledWith({
+      slug: "a",
+      contentType: "image/png",
+      size: 5,
+    });
   });
 });

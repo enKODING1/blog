@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { previewMarkdown, removePost, savePost } from "./actions";
+import {
+  previewMarkdown,
+  removePost,
+  requestImageUpload,
+  savePost,
+} from "./actions";
 import type { PostInput } from "@/lib/posts/types";
 
 type Props = { mode: "create" | "update"; initial?: PostInput };
@@ -32,6 +37,42 @@ export default function PostForm({ mode, initial }: Props) {
   const [failed, setFailed] = useState(false);
   const loginHref = () =>
     "/api/auth/login?next=" + encodeURIComponent(window.location.pathname);
+
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // Uploads each image file to S3 and inserts markdown at the cursor. Any
+  // failure leaves the text untouched and shows an inline error.
+  const uploadImages = async (files: File[], textarea: HTMLTextAreaElement) => {
+    const images = files.filter(f => f.type.startsWith("image/"));
+    if (images.length === 0) return;
+    setUploadError(null);
+    const cursor = textarea.selectionStart;
+    let inserted = "";
+    try {
+      for (const file of images) {
+        const { uploadUrl, markdownPath } = await requestImageUpload(
+          form.slug,
+          file.type,
+          file.size
+        );
+        const res = await fetch(uploadUrl, {
+          method: "PUT",
+          body: file,
+          headers: { "Content-Type": file.type },
+        });
+        if (!res.ok) throw new Error("upload failed: " + res.status);
+        inserted += `![${file.name}](${markdownPath})`;
+      }
+    } catch {
+      setUploadError("이미지를 올리지 못했습니다");
+      setFailed(true);
+      return;
+    }
+    setForm(f => ({
+      ...f,
+      content: f.content.slice(0, cursor) + inserted + f.content.slice(cursor),
+    }));
+  };
 
   const onSave = () =>
     startTransition(async () => {
@@ -157,8 +198,23 @@ export default function PostForm({ mode, initial }: Props) {
           className={`${inputClass} h-96 font-mono`}
           value={form.content}
           onChange={e => set("content", e.target.value)}
+          onPaste={e => {
+            const files = Array.from(e.clipboardData.files);
+            if (files.some(f => f.type.startsWith("image/"))) {
+              e.preventDefault();
+              void uploadImages(files, e.currentTarget);
+            }
+          }}
+          onDrop={e => {
+            const files = Array.from(e.dataTransfer.files);
+            if (files.some(f => f.type.startsWith("image/"))) {
+              e.preventDefault();
+              void uploadImages(files, e.currentTarget);
+            }
+          }}
         />
       )}
+      {uploadError && <p className="text-sm text-red-600">{uploadError}</p>}
       <div className="flex gap-3">
         <button
           type="button"
