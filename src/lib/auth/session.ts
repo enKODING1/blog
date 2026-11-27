@@ -1,5 +1,6 @@
 import { CognitoJwtVerifier } from "aws-jwt-verify";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { getConfig } from "@/lib/config";
 import { SESSION_COOKIE } from "@/lib/auth/cookies";
 
@@ -59,5 +60,20 @@ export async function getAdminSession(): Promise<AdminSession | null> {
 export async function requireAdmin(): Promise<AdminSession> {
   const session = await getAdminSession();
   if (!session) throw new UnauthorizedError();
+  return session;
+}
+
+/**
+ * For admin pages/layouts: Next renders layout and page concurrently, so each
+ * page must guard itself before reading data. Redirects to login when logged
+ * out (including stale/forged cookies, which never surface as a 500).
+ */
+export async function requireAdminPage(
+  nextPath: string
+): Promise<AdminSession> {
+  const session = await getAdminSession();
+  if (!session) {
+    redirect("/api/auth/login?next=" + encodeURIComponent(nextPath));
+  }
   return session;
 }
