@@ -1,19 +1,7 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
-import Script from "next/script";
+import Link from "next/link";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
-import Navbar from "./components/Navbar";
-
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
-});
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
-});
 
 export const metadata: Metadata = {
   title: "seongjin-kang blog",
@@ -26,7 +14,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="ko">
       <head>
         <link
           rel="stylesheet"
@@ -38,28 +26,17 @@ export default function RootLayout({
           href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
           media="(prefers-color-scheme: dark)"
         />
-        <Script
-          async
-          src="https://www.googletagmanager.com/gtag/js?id=G-SQB18PDDPD"
-        ></Script>
-        <Script id="google-analytics">
-          {`
-
-window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
-
-gtag('config', 'G-SQB18PDDPD');
-          `}
-        </Script>
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <Navbar />
-        <main className="px-4 w-full max-w-[640px] mt-[100px] mx-auto">
-          {children}
-        </main>
+      <body className="antialiased">
+        <div className="max-w-2xl mx-auto px-4">
+          <header className="py-6">
+            <Link href="/" className="font-semibold">
+              seongjin-kang blog
+            </Link>
+          </header>
+          <main>{children}</main>
+        </div>
+        <GoogleAnalytics gaId="G-SQB18PDDPD" />
       </body>
     </html>
   );

@@ -1,9 +1,5 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  output: "export",
-  basePath: "",
-  /* config options here */
-};
+const nextConfig: NextConfig = {};
 
 export default nextConfig;
