@@ -1,4 +1,4 @@
-# 블로그 글 DynamoDB 이전 + 관리자 작성 화면 설계
+# 블로그 재구성: 최신 Next.js + DynamoDB + 관리자 작성 화면 설계
 
 작성일: 2026-11-27
 
@@ -8,19 +8,21 @@
 
 지금은 `posts/*.md`를 빌드 시점에 읽어 Next.js 정적 export(`output: "export"`)로 만든다. 글을 쓰려면 저장소에 md 파일을 커밋하고 push 해야 한다.
 
-목표는 **블로그 안에서 로그인해서 글을 쓰고 고치는 것**이다. 글은 DynamoDB에 저장한다. 사이트는 정적일 필요가 없다. 전부 AWS 서버리스 / 관리형으로 구성하고, 호스팅은 **AWS Amplify Hosting**을 쓴다.
+목표는 **블로그 안에서 로그인해서 글을 쓰고 고치는 것**이다. 기존 정적 프로젝트를 고치지 않고 **최신 Next.js로 새로 미니멀하게 만든다**. 나중에 애니메이션 효과를 넣을 예정이다. 글은 DynamoDB에 저장한다. 사이트는 정적일 필요가 없다. 전부 AWS 서버리스 / 관리형으로 구성하고, 호스팅은 **AWS Amplify Hosting**을 쓴다.
 
 ## 목표
 
 - `/admin`에서 로그인 후 글 작성 / 수정 / 삭제 / 발행.
 - 글 본문·메타데이터는 DynamoDB, 이미지는 S3.
 - 발행·수정 즉시(수 초 내) 공개 페이지에 반영. 재빌드 없음.
-- 기존 글 6개와 이미지를 그대로 옮기고 경로(`/posts/{slug}`)를 유지한다. Utterances 댓글이 `issue-term=pathname`이라 경로가 바뀌면 댓글이 끊긴다.
+- 기존 글 6개와 이미지를 그대로 옮기고 경로(`/posts/{slug}`)를 유지한다 (외부 링크 보존).
+- 기존 UI는 전부 버리고 새로 시작한다. 남기는 것은 **Google Analytics(G-SQB18PDDPD)** 하나뿐이다.
+- 나중에 애니메이션(GSAP, Motion 등)을 넣기 쉬운 구조: 레이아웃·페이지 전환 지점을 클라이언트 컴포넌트로 감쌀 수 있게 서버/클라이언트 경계를 단순하게 둔다.
 - Cognito 사용자 풀은 skang.dev의 다른 프로젝트도 쓸 수 있는 **공용 풀**로 만든다.
 
 ## 비목표
 
-- 여러 작성자, 댓글 시스템 교체, 검색, 태그 체계 개편, 예약 발행.
+- 댓글 (Utterances 제거, 새 댓글 시스템 없음), Navbar·블라인드 전환 애니메이션 등 기존 UI 유지, 여러 작성자, 검색, 태그 체계 개편, 예약 발행.
 - 다른 프로젝트의 Cognito 앱 클라이언트 (풀만 공용으로 준비).
 - GitHub Pages(www.enkoding.net)에서의 이전·리다이렉트.
 - dev 환경 (prod만 존재).
@@ -29,7 +31,8 @@
 
 - 로그인만 하면 누구나 글을 쓸 수 있는 상태. → 반드시 `blog-admin` 그룹 검사.
 - 블로그 Terraform을 destroy/재생성할 때 공용 사용자 풀이 같이 사라지는 구조.
-- 기존 글 경로가 바뀌어 댓글·외부 링크가 깨지는 것.
+- 기존 글 경로가 바뀌어 외부 링크가 깨지는 것.
+- 기존 글을 DynamoDB/S3로 옮기고 확인하기 전에 `posts/`를 지우는 것.
 - 방문자 없어도 큰 고정 비용이 나가는 구성.
 - 기존 글 렌더링 결과(GFM 표, 줄바꿈, raw HTML, 코드 하이라이트)가 달라지는 것.
 
@@ -61,7 +64,8 @@
 
 - 저장소: DynamoDB.
 - 작성 방식: 블로그 내 로그인 후 작성 화면.
-- 사이트: 동적 렌더링 허용, AWS 서버리스.
+- 사이트: 동적 렌더링, 글 변경 시 재빌드 없음. AWS 서버리스.
+- 프레임워크: 최신 안정 Next.js로 새로 구성 (Astro/SvelteKit 검토 후 Amplify 공식 SSR 지원 때문에 Next.js). 기존 UI는 버리고 GA만 유지.
 - 호스팅: AWS Amplify Hosting.
 - 인증: Cognito, 사용자 풀은 skang.dev 공용. 이름 `skangdev-prod-auth-userpool`, 스택 `infra-shared/auth/`, Cognito 기본 도메인.
 - PR #2는 닫는다. Terraform 뼈대(provider, backend, 태그 규칙)만 이 작업 브랜치로 가져와 Amplify 구성으로 새로 짠다.
@@ -86,7 +90,7 @@
 - SSR 런타임 권한: Amplify **compute role**(IAM)에 글 테이블 읽기/쓰기, 미디어 버킷 PutObject(presign용), SSM 파라미터 읽기 권한.
 - 비밀값(Cognito client secret): SSM SecureString, 런타임에 compute role로 조회.
 - 기존 GitHub Actions 배포 워크플로는 Amplify 자동 빌드로 대체.
-- Next.js / React는 Amplify가 지원하는 안정 버전으로 맞춘다 (PR #3의 next 15.5 / react 19 업데이트 기반). `output: "export"` 제거.
+- Next.js는 최신 안정 버전 중 Amplify Hosting SSR이 지원하는 버전으로 새로 만든다 (계획 단계에서 지원 범위 확인). 정적 export 없음.
 
 ### 3. 블로그 앱 (Next.js)
 
@@ -100,7 +104,8 @@
   - 쓰기는 Server Actions (관리자 검증 → DynamoDB → `revalidatePath`).
   - 이미지 업로드: 서버가 presigned PUT URL 발급 → 브라우저가 S3에 직접 업로드.
 - 캐싱: 공개 페이지는 on-demand ISR, 발행·수정·삭제 시 `revalidatePath("/")`, `revalidatePath("/posts/{slug}")`. Amplify에서 on-demand revalidate가 기대대로 동작하는지 구현 초기에 확인하고, 안 되면 동적 렌더링 + 짧은 캐시로 대체.
-- 마크다운: 기존 `lib/posts.ts`의 remark/rehype 파이프라인 재사용, 원문 저장.
+- 마크다운: 원문 저장, 서버에서 렌더. 기존 글과 같은 결과가 나오도록 GFM·줄바꿈(breaks)·raw HTML·코드 하이라이트를 지원한다 (기존 `lib/posts.ts`의 remark/rehype 구성을 참고).
+- 스타일: Tailwind, 미니멀. 글 본문은 typography 스타일.
 - 작성 화면: 제목, slug, 날짜, 카테고리, 본문(textarea + 같은 파이프라인 미리보기), 상태(초안/발행), 이미지 드래그·붙여넣기 업로드 시 마크다운 이미지 문법 자동 삽입.
 
 ### 4. 데이터 (DynamoDB)
@@ -139,7 +144,7 @@
 3. 이전 스크립트 실행, 검증.
 4. Amplify 기본 도메인(`*.amplifyapp.com`)에서 글 6개 경로·렌더링·로그인·작성 확인.
 5. blog.skang.dev 연결.
-6. `posts/` 정리.
+6. 기존 정적 프로젝트 코드(`src/`, `lib/`, `posts/`, `public/images/posts/`, `CNAME`, gh-pages 스크립트) 제거. 새 앱은 같은 저장소에서 대체한다.
 
 ## 제 판단으로 정한 것 (사용자 확인 필요)
 
@@ -148,14 +153,15 @@
 - 글 상태(초안/발행) 도입.
 - slug는 생성 후 변경 불가.
 - 이미지 `/media/...` 경로, 미디어 버킷 `posts/*` 공개 읽기 + Amplify 리라이트.
-- 마크다운 원문 저장 + 기존 렌더링 파이프라인 재사용.
+- 마크다운 원문 저장, 기존과 같은 렌더링 기능.
+- 같은 저장소(enKODING1/blog)에서 새 앱으로 교체 (새 저장소 아님).
 
 ## 구현자에게 맡기는 것
 
 - Next / React 정확한 버전(Amplify 지원 범위 내).
 - Amplify GitHub 연결 방식.
 - 인증 라이브러리(`aws-jwt-verify` 등).
-- 작성 화면 UI 세부(기존 Tailwind 스타일).
+- 화면 디자인 세부 (미니멀 원칙 안에서).
 - 테스트 전략.
 
 ## 열린 질문
