@@ -57,7 +57,10 @@ export default function StatusBar() {
     update();
     window.addEventListener("scroll", schedule, { passive: true });
     window.addEventListener("resize", schedule);
+    const observer = new ResizeObserver(schedule);
+    observer.observe(document.body);
     return () => {
+      observer.disconnect();
       window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", schedule);
       if (frame) cancelAnimationFrame(frame);
@@ -73,9 +76,7 @@ export default function StatusBar() {
         <span className="truncate text-dim">{terminalPath(pathname)}</span>
       </div>
       <div className="flex shrink-0 items-center gap-3 text-dim">
-        {showProgress && progress && (
-          <span className="hidden sm:inline">{progress}</span>
-        )}
+        {showProgress && progress && <span>{progress}</span>}
         <span>
           <span className="text-accent" aria-hidden>
             ●
