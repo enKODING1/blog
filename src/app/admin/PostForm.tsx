@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import {
   previewMarkdown,
   removePost,
@@ -44,6 +44,15 @@ export default function PostForm({ mode, initial }: Props) {
   const loginHref = () =>
     "/api/auth/login?next=" + encodeURIComponent(window.location.pathname);
 
+  // In-flight uploads: saving while placeholders are in the text would
+  // persist empty-src images. The ref backs the guard in onSave; the state
+  // drives the disabled button.
+  const inFlight = useRef(0);
+  const [uploading, setUploading] = useState(0);
+  const trackUpload = (delta: number) => {
+    inFlight.current += delta;
+    setUploading(inFlight.current);
+  };
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   // Each file gets a unique placeholder inserted synchronously at the cursor,
@@ -73,6 +82,7 @@ export default function PostForm({ mode, initial }: Props) {
         ...f,
         content: replacePlaceholder(f.content, placeholder, replacement),
       }));
+    trackUpload(jobs.length);
     for (const { file, placeholder } of jobs) {
       void (async () => {
         try {
@@ -92,12 +102,15 @@ export default function PostForm({ mode, initial }: Props) {
           swap(placeholder, "");
           setUploadError("이미지를 올리지 못했습니다");
           setFailed(true);
+        } finally {
+          trackUpload(-1);
         }
       })();
     }
   };
 
-  const onSave = () =>
+  const onSave = () => {
+    if (inFlight.current > 0) return;
     startTransition(async () => {
       try {
         setFailed(false);
@@ -111,6 +124,7 @@ export default function PostForm({ mode, initial }: Props) {
         setFailed(true);
       }
     });
+  };
 
   const onPreview = () =>
     startTransition(async () => {
@@ -241,12 +255,15 @@ export default function PostForm({ mode, initial }: Props) {
       <div className="flex gap-3">
         <button
           type="button"
-          disabled={pending}
+          disabled={pending || uploading > 0}
           onClick={onSave}
           className="rounded border px-3 py-1"
         >
           저장
         </button>
+        {uploading > 0 && (
+          <span className="self-center text-sm">이미지 업로드 중…</span>
+        )}
         <button
           type="button"
           disabled={pending}
