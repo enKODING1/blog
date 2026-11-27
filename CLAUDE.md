@@ -14,6 +14,7 @@
 
 - 리전은 서울(`ap-northeast-2`). 단 CloudFront 용 ACM 인증서는 AWS 제약상 `us-east-1` 에만 만들 수 있어 예외다 (`aws.us_east_1` provider). 이것을 서울로 "고치지" 않는다.
 - 블로그는 `dev` 없이 `prod` 하나만 둔다.
+- Lambda 는 **Rust** 로 작성한다 (`cargo lambda`, `provided.al2023` 런타임, `arm64`). 다른 언어는 사용자가 따로 요청할 때만.
 - 리소스 이름: `blog-prod-{도메인}-{기능}-{리소스종류}` (S3 버킷은 끝에 계정 ID).
 - 태그: `Project=blog`, `Environment=prod`, `ManagedBy=terraform`.
 - 블로그 주소는 `blog.skang.dev`. `skang.dev` 는 범용 도메인(Cloudflare)이라 루트·`www`·다른 서브도메인은 이 프로젝트가 건드리지 않는다.
