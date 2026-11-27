@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { gsap } from "./gsap";
+import { scrambleFrame } from "@/lib/terminal/scramble";
 import {
   SCRAMBLE_CHARS,
   TIMINGS,
@@ -43,11 +44,23 @@ export default function Scramble({ text, trigger, active, className }: Props) {
     // Checked at call time: the hook value is still false during hydration.
     if (!el || prefersReducedMotion()) return;
     stop();
-    tweenRef.current = gsap.to(el, {
+    // Animate a plain progress value and write frames with textContent:
+    // titles may contain "<" or "&", which must never be parsed as HTML.
+    const proxy = { p: 0 };
+    tweenRef.current = gsap.to(proxy, {
+      p: 1,
       duration: TIMINGS.scramble,
       ease: "none",
-      scrambleText: { text, chars: SCRAMBLE_CHARS, speed: 1 },
+      onUpdate: () => {
+        el.textContent = scrambleFrame(
+          text,
+          proxy.p,
+          SCRAMBLE_CHARS,
+          Math.random
+        );
+      },
       onComplete: () => {
+        el.textContent = text;
         tweenRef.current = null;
       },
     });
@@ -90,7 +103,7 @@ export default function Scramble({ text, trigger, active, className }: Props) {
   return (
     <span ref={outerRef} className={className}>
       <span className="sr-only">{text}</span>
-      {/* key: GSAP rewrites this node's children, so remount on new text. */}
+      {/* key: play() rewrites this node's text, so remount on new text. */}
       <span key={text} ref={visualRef} aria-hidden="true">
         {text}
       </span>

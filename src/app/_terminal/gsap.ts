@@ -1,9 +1,8 @@
 "use client";
 
 import { gsap } from "gsap";
-import { ScrambleTextPlugin } from "gsap/ScrambleTextPlugin";
 import { useGSAP } from "@gsap/react";
 
-gsap.registerPlugin(useGSAP, ScrambleTextPlugin);
+gsap.registerPlugin(useGSAP);
 
 export { gsap, useGSAP };
