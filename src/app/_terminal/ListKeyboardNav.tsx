@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { isTypingTarget, nextIndex } from "@/lib/terminal/keys";
+import {
+  isTypingTarget,
+  nextIndex,
+  normalizeNavKey,
+} from "@/lib/terminal/keys";
 
 /**
  * j/k and arrow keys move real focus between the rows' links. Enter is the
@@ -37,14 +41,22 @@ export default function ListKeyboardNav({
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const active = document.activeElement;
       if (isTypingTarget(active as HTMLElement | null)) return;
-      const arrow = e.key === "ArrowDown" || e.key === "ArrowUp";
-      if (!arrow && e.key !== "j" && e.key !== "k") return;
-      if (arrow && active !== document.body && !root.contains(active)) return;
+      const key = normalizeNavKey(e.key, e.code);
+      const arrow = key === "ArrowDown" || key === "ArrowUp";
+      if (!arrow && key !== "j" && key !== "k") return;
+      const afterTransition = active?.matches('main h1[tabindex="-1"]');
+      if (
+        arrow &&
+        active !== document.body &&
+        !afterTransition &&
+        !root.contains(active)
+      )
+        return;
 
       const list = rows();
       const focused = active && root.contains(active) ? indexOf(active) : -1;
       const current = focused >= 0 ? focused : selected.current;
-      const next = nextIndex(current, e.key, list.length);
+      const next = nextIndex(current, key, list.length);
       if (next === null) return;
       e.preventDefault();
       selected.current = next;

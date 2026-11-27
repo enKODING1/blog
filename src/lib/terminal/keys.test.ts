@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isTypingTarget, nextIndex } from "./keys";
+import { isTypingTarget, nextIndex, normalizeNavKey } from "./keys";
 
 describe("nextIndex", () => {
   it("starts at 0 from no selection", () => {
@@ -32,5 +32,18 @@ describe("isTypingTarget", () => {
   it("is false for links and null", () => {
     expect(isTypingTarget({ tagName: "A" })).toBe(false);
     expect(isTypingTarget(null)).toBe(false);
+  });
+});
+
+describe("normalizeNavKey", () => {
+  it.each([
+    ["ㅓ", "KeyJ", "j"],
+    ["ㅏ", "KeyK", "k"],
+    ["Process", "KeyJ", "j"],
+    ["j", "KeyJ", "j"],
+    ["x", "KeyX", "x"],
+    ["ArrowDown", "ArrowDown", "ArrowDown"],
+  ])("(%s, %s) -> %s", (key, code, out) => {
+    expect(normalizeNavKey(key, code)).toBe(out);
   });
 });

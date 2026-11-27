@@ -11,6 +11,7 @@ export default function PostKeys() {
   useEffect(() => {
     if (!nav) return;
     const onKeyDown = (e: KeyboardEvent) => {
+      if (e.repeat || e.defaultPrevented) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key !== "Escape" && e.key !== "Backspace") return;
       if (isTypingTarget(document.activeElement as HTMLElement | null)) return;

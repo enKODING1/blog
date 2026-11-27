@@ -29,8 +29,6 @@ body {
 /* Inverted highlight (selected row, hover). A utility so variants work:
    hover:term-sel, group-hover:term-sel, group-focus-within:term-sel. Children
    inherit the inverted color so dim/accent text stays readable. */
-@custom-variant pointer-fine (@media (pointer: fine));
-
 @utility term-sel {
   background-color: var(--color-fg);
   color: var(--color-bg);

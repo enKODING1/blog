@@ -24,3 +24,11 @@ export function isTypingTarget(
     el.isContentEditable === true
   );
 }
+
+/** Maps Korean-IME keys (e.key "ㅓ"/"Process") to j/k via the physical key. */
+export function normalizeNavKey(key: string, code: string): string {
+  if (["j", "k", "ArrowUp", "ArrowDown"].includes(key)) return key;
+  if (code === "KeyJ") return "j";
+  if (code === "KeyK") return "k";
+  return key;
+}
