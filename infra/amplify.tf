@@ -54,61 +54,17 @@ resource "aws_iam_role_policy" "web_ssr" {
   policy = data.aws_iam_policy_document.web_ssr.json
 }
 
-# Amplify 서비스 역할: 빌드·SSR 로그를 CloudWatch Logs 에 쓴다
-data "aws_iam_policy_document" "web_amplify_assume" {
-  statement {
-    effect  = "Allow"
-    actions = ["sts:AssumeRole"]
-
-    principals {
-      type        = "Service"
-      identifiers = ["amplify.amazonaws.com"]
-    }
-
-    condition {
-      test     = "StringEquals"
-      variable = "aws:SourceAccount"
-      values   = [local.account_id]
-    }
-  }
-}
-
-resource "aws_iam_role" "web_amplify" {
-  name               = "${local.name_prefix}-web-amplify-role"
-  assume_role_policy = data.aws_iam_policy_document.web_amplify_assume.json
-}
-
-data "aws_iam_policy_document" "web_amplify" {
-  statement {
-    sid    = "AmplifyLogs"
-    effect = "Allow"
-    actions = [
-      "logs:CreateLogGroup",
-      "logs:CreateLogStream",
-      "logs:PutLogEvents",
-      "logs:DescribeLogGroups",
-    ]
-    resources = [
-      "arn:aws:logs:${local.region}:${local.account_id}:log-group:/aws/amplify/*",
-      "arn:aws:logs:${local.region}:${local.account_id}:log-group:/aws/amplify/*:*",
-    ]
-  }
-}
-
-resource "aws_iam_role_policy" "web_amplify" {
-  name   = "${local.name_prefix}-web-amplify-policy"
-  role   = aws_iam_role.web_amplify.id
-  policy = data.aws_iam_policy_document.web_amplify.json
-}
+# Amplify 서비스 역할(SSR 로그용)은 콘솔이 앱을 만들 때 생성한 AmplifySSRLoggingRole-* 를 그대로 쓴다.
+# aws provider 6.x 에서 iam_service_role_arn 변경은 앱 교체(앱 ID·기본 도메인·GitHub 연결이 바뀜)를 일으키므로
+# Terraform 이 이 값을 관리하지 않는다 (아래 lifecycle.ignore_changes).
 
 # 앱은 콘솔에서 GitHub App 으로 연결해 만든 뒤 import 한다.
 # 저장소 연결·토큰·빌드 스펙(amplify.yml)은 콘솔/저장소가 관리하므로 무시한다.
 resource "aws_amplify_app" "web" {
-  name                 = "${local.name_prefix}-web-site-amplify"
-  repository           = "https://github.com/${var.github_repository}"
-  platform             = "WEB_COMPUTE"
-  compute_role_arn     = aws_iam_role.web_ssr.arn
-  iam_service_role_arn = aws_iam_role.web_amplify.arn
+  name             = "${local.name_prefix}-web-site-amplify"
+  repository       = "https://github.com/${var.github_repository}"
+  platform         = "WEB_COMPUTE"
+  compute_role_arn = aws_iam_role.web_ssr.arn
 
   # amplify.yml 이 BLOG_*/COGNITO_* 를 .env.production 으로 복사한다. 값에 끝 슬래시 없음.
   environment_variables = {
@@ -129,7 +85,7 @@ resource "aws_amplify_app" "web" {
   }
 
   lifecycle {
-    ignore_changes = [access_token, oauth_token, repository, build_spec]
+    ignore_changes = [access_token, oauth_token, repository, build_spec, iam_service_role_arn, cache_config, job_config]
   }
 }
 

@@ -52,3 +52,6 @@ infra-shared/**/*.tfstate
 infra-shared/**/*.tfstate.*
 infra-shared/**/*.tfvars
 !infra-shared/**/*.tfvars.example
+
+# Cloudflare API 토큰 (로컬 전용)
+**/.cloudflare-token
