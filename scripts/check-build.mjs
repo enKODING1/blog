@@ -3,7 +3,13 @@ import { existsSync, readFileSync } from "node:fs";
 
 const NEXT = ".next";
 // 라우트가 생길 때마다 추가한다: Task 6 에서 "/admin"
-const REQUIRED_ROUTES = ["/", "/posts/[slug]"];
+const REQUIRED_ROUTES = [
+  "/",
+  "/posts/[slug]",
+  "/api/auth/login",
+  "/api/auth/callback",
+  "/api/auth/logout",
+];
 const errors = [];
 
 for (const required of ["BUILD_ID", "required-server-files.json"]) {
