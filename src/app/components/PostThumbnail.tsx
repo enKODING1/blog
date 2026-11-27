@@ -14,12 +14,12 @@ export default function PostThumbnail({
   date,
   category,
   href,
-  style,
+  style = "",
 }: PostThumbnailProps) {
   return (
     <Link
       href={href}
-      className={`block hover:bg-[rgba(100,100,100,0.2)] border-solid border-inherit p-4 rounded-xl  ${style}`}
+      className={`block hover:bg-[rgba(100,100,100,0.2)] border-solid border-inherit p-4 rounded-xl ${style}`.trim()}
     >
       <li className="truncate">{title}</li>
       <div className="flex flex-row justify-between space-around mt-[4px]">
