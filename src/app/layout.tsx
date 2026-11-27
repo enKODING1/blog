@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { JetBrains_Mono } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
+import StatusBar from "./_terminal/StatusBar";
 
 const mono = JetBrains_Mono({
   subsets: ["latin"],
@@ -28,12 +28,8 @@ export default function RootLayout({
         />
       </head>
       <body className="font-mono antialiased">
+        <StatusBar />
         <div className="max-w-3xl mx-auto px-4">
-          <header className="py-6">
-            <Link href="/" className="font-semibold">
-              seongjin-kang blog
-            </Link>
-          </header>
           <main>{children}</main>
         </div>
         <div className="scanlines" aria-hidden />
