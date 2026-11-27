@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { JetBrains_Mono } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
+import BlockCursor from "./_terminal/BlockCursor";
 import StatusBar from "./_terminal/StatusBar";
 import { TransitionProvider } from "./_terminal/TransitionProvider";
 
@@ -45,6 +46,7 @@ export default function RootLayout({
           </div>
         </TransitionProvider>
         <div className="scanlines" aria-hidden />
+        <BlockCursor />
         <GoogleAnalytics gaId="G-SQB18PDDPD" />
       </body>
     </html>

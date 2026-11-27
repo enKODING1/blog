@@ -83,3 +83,16 @@ body {
 html[data-enter] main [data-line] {
   clip-path: inset(0 100% 0 0);
 }
+
+/* Block cursor (BlockCursor.tsx toggles the class). Form fields keep theirs. */
+.block-cursor,
+.block-cursor * {
+  cursor: none;
+}
+.block-cursor
+  :is(input, textarea, select, [contenteditable], [contenteditable] *) {
+  cursor: auto;
+}
+.block-cursor :is(input, textarea, [contenteditable], [contenteditable] *) {
+  cursor: text;
+}
