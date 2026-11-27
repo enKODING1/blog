@@ -1,10 +1,10 @@
 import { cache } from "react";
+import { TransitionLink } from "@/app/_terminal/TransitionProvider";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPublishedPost } from "@/lib/posts/repo";
 import { renderMarkdown } from "@/lib/markdown";
 import { isValidSlug } from "@/lib/posts/validate";
-import Link from "next/link";
 import Scramble from "@/app/_terminal/Scramble";
 
 export const dynamic = "force-dynamic";
@@ -49,9 +49,9 @@ export default async function PostPage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: html }}
       />
       <p data-line className="mt-12">
-        <Link href="/" className="px-1 hover:term-sel">
+        <TransitionLink href="/" className="px-1 hover:term-sel">
           ← cd ..
-        </Link>
+        </TransitionLink>
       </p>
     </div>
   );

@@ -1,5 +1,5 @@
-import Link from "next/link";
 import NotFoundPath from "./_terminal/NotFoundPath";
+import { TransitionLink } from "@/app/_terminal/TransitionProvider";
 
 export default function NotFound() {
   return (
@@ -8,9 +8,9 @@ export default function NotFound() {
         <NotFoundPath />
       </p>
       <p data-line className="mt-4">
-        <Link href="/" className="px-1 hover:term-sel">
+        <TransitionLink href="/" className="px-1 hover:term-sel">
           ← cd ~
-        </Link>
+        </TransitionLink>
       </p>
     </div>
   );

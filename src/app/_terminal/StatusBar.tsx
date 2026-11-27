@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
@@ -9,6 +8,7 @@ import {
   scrollRatio,
   terminalPath,
 } from "@/lib/terminal/format";
+import { TransitionLink } from "./TransitionProvider";
 
 const CLOCK_PLACEHOLDER = "--:-- KST";
 
@@ -70,9 +70,9 @@ export default function StatusBar() {
   return (
     <div className="sticky top-0 z-40 flex h-8 items-center justify-between gap-4 border-b border-line bg-bg px-4 text-sm text-fg">
       <div className="flex min-w-0 items-center gap-2">
-        <Link href="/" className="shrink-0 font-semibold">
+        <TransitionLink href="/" className="shrink-0 font-semibold">
           seongjin@blog
-        </Link>
+        </TransitionLink>
         <span className="truncate text-dim">{terminalPath(pathname)}</span>
       </div>
       <div className="flex shrink-0 items-center gap-3 text-dim">

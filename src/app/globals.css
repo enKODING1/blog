@@ -74,3 +74,12 @@ body {
     transparent 1px 3px
   );
 }
+
+/*
+ * First-load enter guard: layout.tsx's inline head script sets data-enter
+ * before paint (motion allowed, not /admin); PageEnter removes it once GSAP
+ * owns the lines. The script also drops it after 3s if JS never hydrates.
+ */
+html[data-enter] main [data-line] {
+  clip-path: inset(0 100% 0 0);
+}
