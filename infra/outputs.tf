@@ -22,3 +22,8 @@ output "cognito_client_id" {
   description = "블로그 Cognito 앱 클라이언트 ID"
   value       = aws_cognito_user_pool_client.blog.id
 }
+
+output "api_url" {
+  description = "글 API(HTTP API) 엔드포인트. 끝 슬래시 없음"
+  value       = aws_apigatewayv2_api.post_api.api_endpoint
+}

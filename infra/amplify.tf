@@ -46,6 +46,14 @@ data "aws_iam_policy_document" "web_ssr" {
     actions   = ["s3:PutObject"]
     resources = ["${aws_s3_bucket.media.arn}/posts/*"]
   }
+
+  # 글 API(AWS_IAM) 호출 권한. 2단계에서 위 DynamoDB/S3 문장은 제거한다.
+  statement {
+    sid       = "InvokePostApi"
+    effect    = "Allow"
+    actions   = ["execute-api:Invoke"]
+    resources = ["${aws_apigatewayv2_api.post_api.execution_arn}/*/*/*"]
+  }
 }
 
 resource "aws_iam_role_policy" "web_ssr" {
@@ -71,6 +79,7 @@ resource "aws_amplify_app" "web" {
     BLOG_AWS_REGION      = local.region
     BLOG_POSTS_TABLE     = aws_dynamodb_table.posts.name
     BLOG_MEDIA_BUCKET    = aws_s3_bucket.media.bucket
+    BLOG_API_URL         = aws_apigatewayv2_api.post_api.api_endpoint
     BLOG_SITE_URL        = "https://${var.site_domain}"
     COGNITO_USER_POOL_ID = local.user_pool_id
     COGNITO_CLIENT_ID    = aws_cognito_user_pool_client.blog.id
