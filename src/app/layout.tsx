@@ -3,6 +3,7 @@ import { JetBrains_Mono } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import BlockCursor from "./_terminal/BlockCursor";
+import Clarity from "./Clarity";
 import StatusBar from "./_terminal/StatusBar";
 import { TransitionProvider } from "./_terminal/TransitionProvider";
 
@@ -14,6 +15,14 @@ const mono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "seongjin-kang blog",
   description: "Personal blog",
+  // Site ownership tags for Naver Search Advisor and Bing Webmaster Tools.
+  // Google Search Console is verified by a DNS TXT record on skang.dev.
+  verification: {
+    other: {
+      "naver-site-verification": "89a9e32462b183be2ac48289260a9dcb2b9efc8b",
+      "msvalidate.01": "4F1C7887D159E213D7B4251E74ECD43D",
+    },
+  },
 };
 
 // Runs before first paint: hide main's lines so PageEnter can type them in
@@ -48,6 +57,7 @@ export default function RootLayout({
         <div className="scanlines" aria-hidden />
         <BlockCursor />
         <GoogleAnalytics gaId="G-SQB18PDDPD" />
+        <Clarity />
       </body>
     </html>
   );
