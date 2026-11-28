@@ -60,6 +60,12 @@ body {
   --tw-prose-invert-td-borders: var(--color-line);
 }
 
+/* Long unbroken text (e.g. a bare GitHub URL) wraps instead of widening the
+   page on mobile. break-word keeps table min-content sizing intact. */
+.prose {
+  overflow-wrap: break-word;
+}
+
 /* Code stays monospace inside the sans-serif article body. */
 .prose :where(code, pre, kbd, samp) {
   font-family: var(--font-mono), ui-monospace, monospace;
