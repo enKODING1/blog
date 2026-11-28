@@ -40,10 +40,20 @@ describe("createImageUpload", () => {
   });
 
   it.each([401, 403])("maps %i to UnauthorizedError", async status => {
-    api.mockResolvedValue({ status, body: { error: "x" } });
+    api.mockResolvedValue({
+      status,
+      body: { error: status === 401 ? "unauthorized" : "forbidden" },
+    });
     await expect(createImageUpload("t", p)).rejects.toBeInstanceOf(
       UnauthorizedError
     );
+  });
+
+  it("treats a gateway 403 as a plain error", async () => {
+    api.mockResolvedValue({ status: 403, body: { message: "Forbidden" } });
+    const err = await createImageUpload("t", p).catch(e => e);
+    expect(err).not.toBeInstanceOf(UnauthorizedError);
+    expect(err.message).toBe("API 403 gateway");
   });
 
   it("throws on an unexpected status", async () => {

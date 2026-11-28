@@ -92,13 +92,29 @@ describe("admin reads", () => {
   });
 
   it.each([401, 403])("maps %i to UnauthorizedError", async status => {
-    api.mockResolvedValue(ok(status, { error: "x" }));
+    api.mockResolvedValue(
+      ok(status, { error: status === 401 ? "unauthorized" : "forbidden" })
+    );
     await expect(listAllPosts(TOKEN)).rejects.toBeInstanceOf(UnauthorizedError);
     await expect(getPost(TOKEN, "a")).rejects.toBeInstanceOf(UnauthorizedError);
   });
 
+  it("treats gateway 403/404 bodies as plain errors", async () => {
+    api.mockResolvedValue(ok(403, { message: "Forbidden" }));
+    const e403 = await listAllPosts(TOKEN).catch(e => e);
+    expect(e403).toBeInstanceOf(Error);
+    expect(e403).not.toBeInstanceOf(UnauthorizedError);
+    expect(e403.message).toBe("API 403 gateway");
+    api.mockResolvedValue(ok(404, { message: "Not Found" }));
+    await expect(getPost(TOKEN, "a")).rejects.toThrow("API 404 gateway");
+    await expect(getPublishedPost("a")).rejects.toThrow("API 404 gateway");
+    await expect(updatePost(TOKEN, "a", input)).rejects.toThrow(
+      "API 404 gateway"
+    );
+  });
+
   it("encodes the slug in the path", async () => {
-    api.mockResolvedValue(ok(404, null));
+    api.mockResolvedValue(ok(404, { error: "not_found" }));
     await getPost(TOKEN, "a/b");
     expect(api).toHaveBeenCalledWith("GET", "/admin/posts/a%2Fb", {
       userToken: TOKEN,
@@ -134,8 +150,20 @@ describe("createPost", () => {
     });
   });
 
+  it.each([{}, { errors: {} }, null])(
+    "gives a generic message for an empty 400 body (%j)",
+    async body => {
+      api.mockResolvedValue(ok(400, body));
+      const err = await createPost(TOKEN, input).catch(e => e);
+      expect(err).toBeInstanceOf(ValidationError);
+      expect(Object.keys((err as ValidationError).errors)).toEqual(["_"]);
+    }
+  );
+
   it.each([401, 403])("maps %i to UnauthorizedError", async status => {
-    api.mockResolvedValue(ok(status, { error: "x" }));
+    api.mockResolvedValue(
+      ok(status, { error: status === 401 ? "unauthorized" : "forbidden" })
+    );
     await expect(createPost(TOKEN, input)).rejects.toBeInstanceOf(
       UnauthorizedError
     );
@@ -170,7 +198,9 @@ describe("updatePost", () => {
   });
 
   it.each([401, 403])("maps %i to UnauthorizedError", async status => {
-    api.mockResolvedValue(ok(status, { error: "x" }));
+    api.mockResolvedValue(
+      ok(status, { error: status === 401 ? "unauthorized" : "forbidden" })
+    );
     await expect(updatePost(TOKEN, slug, rest)).rejects.toBeInstanceOf(
       UnauthorizedError
     );
@@ -192,7 +222,9 @@ describe("deletePost", () => {
   });
 
   it.each([401, 403])("maps %i to UnauthorizedError", async status => {
-    api.mockResolvedValue(ok(status, { error: "x" }));
+    api.mockResolvedValue(
+      ok(status, { error: status === 401 ? "unauthorized" : "forbidden" })
+    );
     await expect(deletePost(TOKEN, "a")).rejects.toBeInstanceOf(
       UnauthorizedError
     );

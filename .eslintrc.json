@@ -21,6 +21,17 @@
             "name": "@aws-sdk/s3-request-presigner",
             "message": "AWS 리소스는 API Gateway를 거쳐 호출합니다 (src/lib/api/client.ts)"
           }
+        ],
+        "patterns": [
+          {
+            "group": [
+              "@aws-sdk/client-*",
+              "@aws-sdk/lib-*",
+              "@aws-sdk/s3-request-presigner",
+              "@aws-sdk/s3-request-presigner/*"
+            ],
+            "message": "AWS 리소스는 API Gateway를 거쳐 호출합니다 (src/lib/api/client.ts)"
+          }
         ]
       }
     ]

@@ -1,5 +1,5 @@
 import { apiRequest } from "@/lib/api/client";
-import { UnauthorizedError } from "@/lib/auth/session";
+import { throwIfUnauthorized } from "@/lib/api/lambda-error";
 
 // Client-side pre-check only; the API enforces the same rules.
 // SVG is deliberately excluded: it can carry scripts.
@@ -21,7 +21,7 @@ export async function createImageUpload(
     body: p,
     userToken: token,
   });
-  if (res.status === 401 || res.status === 403) throw new UnauthorizedError();
+  throwIfUnauthorized(res);
   if (res.status === 400) throw new Error("Invalid image upload");
   if (res.status === 200 && res.body) return res.body;
   throw new Error(`API ${res.status}`);

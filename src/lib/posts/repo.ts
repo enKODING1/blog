@@ -1,5 +1,5 @@
 import { apiRequest, type ApiMethod } from "@/lib/api/client";
-import { UnauthorizedError } from "@/lib/auth/session";
+import { isLambdaNotFound, throwIfUnauthorized } from "@/lib/api/lambda-error";
 import type { Post, PostInput, PostSummary } from "@/lib/posts/types";
 
 export class PostExistsError extends Error {
@@ -26,7 +26,7 @@ export class ValidationError extends Error {
 
 const enc = encodeURIComponent;
 
-/** Calls the API; 401/403 become UnauthorizedError (login banner/redirect). */
+/** Calls the API; Lambda 401/403 become UnauthorizedError (login banner/redirect). */
 async function call<T>(
   method: ApiMethod,
   path: string,
@@ -35,7 +35,7 @@ async function call<T>(
   const res = opts
     ? await apiRequest<T>(method, path, opts)
     : await apiRequest<T>(method, path);
-  if (res.status === 401 || res.status === 403) throw new UnauthorizedError();
+  throwIfUnauthorized(res);
   return res;
 }
 
@@ -45,9 +45,10 @@ function unexpected(status: number): Error {
 
 function errorsOf(body: unknown): Record<string, string> {
   const errors = (body as { errors?: unknown } | null)?.errors;
-  return errors && typeof errors === "object"
-    ? (errors as Record<string, string>)
-    : {};
+  if (errors && typeof errors === "object" && Object.keys(errors).length > 0) {
+    return errors as Record<string, string>;
+  }
+  return { _: "저장하지 못했습니다. 입력값을 확인해 주세요." };
 }
 
 export async function listPublishedPosts(): Promise<PostSummary[]> {
@@ -58,7 +59,7 @@ export async function listPublishedPosts(): Promise<PostSummary[]> {
 
 export async function getPublishedPost(slug: string): Promise<Post | null> {
   const res = await call<Post>("GET", `/posts/${enc(slug)}`);
-  if (res.status === 404) return null;
+  if (isLambdaNotFound(res)) return null;
   if (res.status === 200 && res.body) return res.body;
   throw unexpected(res.status);
 }
@@ -78,7 +79,7 @@ export async function getPost(
   const res = await call<Post>("GET", `/admin/posts/${enc(slug)}`, {
     userToken: token,
   });
-  if (res.status === 404) return null;
+  if (isLambdaNotFound(res)) return null;
   if (res.status === 200 && res.body) return res.body;
   throw unexpected(res.status);
 }
@@ -107,7 +108,7 @@ export async function updatePost(
     userToken: token,
   });
   if (res.status === 200 && res.body) return res.body;
-  if (res.status === 404) throw new PostNotFoundError(slug);
+  if (isLambdaNotFound(res)) throw new PostNotFoundError(slug);
   if (res.status === 400) throw new ValidationError(errorsOf(res.body));
   throw unexpected(res.status);
 }
