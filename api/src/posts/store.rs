@@ -107,8 +107,27 @@ pub struct DynamoStore {
     pub table: String,
 }
 
-fn internal<E>(_: E) -> ApiError {
-    // 로그에는 메서드·경로·상태·ms 만 남긴다(Global Constraints). 오류 내용은 기록하지 않는다.
+/// 오류 코드(서비스 오류) 또는 오류 종류(그 외)만 돌려준다. 메시지·요청·응답·헤더는 쓰지 않는다.
+fn error_tag<E, R>(err: &SdkError<E, R>) -> &str
+where
+    E: ProvideErrorMetadata,
+{
+    match err {
+        SdkError::ServiceError(s) => s.err().code().unwrap_or("none"),
+        SdkError::DispatchFailure(_) => "dispatch",
+        SdkError::TimeoutError(_) => "timeout",
+        SdkError::ResponseError(_) => "response",
+        SdkError::ConstructionFailure(_) => "construction",
+        _ => "other",
+    }
+}
+
+/// SDK 오류를 500 으로 바꾸며 한 줄만 남긴다: 오류 코드/종류 only(Ruling R2).
+fn internal<E, R>(err: SdkError<E, R>) -> ApiError
+where
+    E: ProvideErrorMetadata,
+{
+    tracing::error!(dynamodb_error = error_tag(&err), "dynamodb call failed");
     ApiError::Internal
 }
 
@@ -199,7 +218,7 @@ impl PostStore for DynamoStore {
                 if is_condition_failure(&e) {
                     ApiError::Conflict
                 } else {
-                    ApiError::Internal
+                    internal(e)
                 }
             })?;
         Ok(())
@@ -228,7 +247,7 @@ impl PostStore for DynamoStore {
                 if is_condition_failure(&e) {
                     ApiError::NotFound
                 } else {
-                    ApiError::Internal
+                    internal(e)
                 }
             })?;
         from_item(res.attributes.as_ref().ok_or(ApiError::Internal)?)
