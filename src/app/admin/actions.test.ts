@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/auth/session", async orig => ({
   ...(await orig<typeof import("@/lib/auth/session")>()),
   requireAdmin: vi.fn(),
+  requireAdminToken: vi.fn(),
 }));
 vi.mock("@/lib/posts/repo", async orig => ({
   ...(await orig<typeof import("@/lib/posts/repo")>()),
@@ -20,13 +21,14 @@ vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireAdmin, UnauthorizedError } from "@/lib/auth/session";
+import { requireAdminToken, UnauthorizedError } from "@/lib/auth/session";
 import {
   createPost,
   deletePost,
   PostExistsError,
   PostNotFoundError,
   updatePost,
+  ValidationError,
 } from "@/lib/posts/repo";
 import { renderMarkdown } from "@/lib/markdown";
 import { createImageUpload } from "@/lib/media/upload";
@@ -36,6 +38,8 @@ import {
   requestImageUpload,
   savePost,
 } from "./actions";
+
+const TOKEN = "id.token";
 
 const input = {
   slug: "hello-world",
@@ -49,12 +53,12 @@ const input = {
 describe("admin actions", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(requireAdmin).mockResolvedValue({ email: "a@b.c", sub: "s" });
+    vi.mocked(requireAdminToken).mockResolvedValue(TOKEN);
   });
 
   describe("without login", () => {
     beforeEach(() => {
-      vi.mocked(requireAdmin).mockRejectedValue(new UnauthorizedError());
+      vi.mocked(requireAdminToken).mockRejectedValue(new UnauthorizedError());
     });
 
     it("rejects requestImageUpload and never presigns", async () => {
@@ -98,7 +102,7 @@ describe("admin actions", () => {
       ok: true,
       slug: "hello-world",
     });
-    expect(createPost).toHaveBeenCalledWith(input);
+    expect(createPost).toHaveBeenCalledWith(TOKEN, input);
     expect(revalidatePath).toHaveBeenCalledWith("/");
     expect(revalidatePath).toHaveBeenCalledWith("/posts/hello-world");
   });
@@ -124,7 +128,7 @@ describe("admin actions", () => {
       slug: "hello-world",
     });
     const { slug, ...rest } = input;
-    expect(updatePost).toHaveBeenCalledWith(slug, rest);
+    expect(updatePost).toHaveBeenCalledWith(TOKEN, slug, rest);
   });
 
   it("maps PostNotFoundError on update", async () => {
@@ -137,6 +141,30 @@ describe("admin actions", () => {
     });
   });
 
+  it("maps ValidationError from the API to field errors", async () => {
+    vi.mocked(createPost).mockRejectedValue(
+      new ValidationError({ title: "제목을 입력하세요" })
+    );
+    expect(await savePost("create", input)).toEqual({
+      ok: false,
+      errors: { title: "제목을 입력하세요" },
+    });
+    vi.mocked(updatePost).mockRejectedValue(
+      new ValidationError({ date: "날짜" })
+    );
+    expect(await savePost("update", input)).toEqual({
+      ok: false,
+      errors: { date: "날짜" },
+    });
+  });
+
+  it("propagates UnauthorizedError from the API (expired token)", async () => {
+    vi.mocked(createPost).mockRejectedValue(new UnauthorizedError());
+    await expect(savePost("create", input)).rejects.toBeInstanceOf(
+      UnauthorizedError
+    );
+  });
+
   it("propagates unknown errors", async () => {
     vi.mocked(createPost).mockRejectedValue(new Error("boom"));
     await expect(savePost("create", input)).rejects.toThrow("boom");
@@ -144,7 +172,7 @@ describe("admin actions", () => {
 
   it("removePost deletes, revalidates and redirects", async () => {
     await removePost("hello-world");
-    expect(deletePost).toHaveBeenCalledWith("hello-world");
+    expect(deletePost).toHaveBeenCalledWith(TOKEN, "hello-world");
     expect(revalidatePath).toHaveBeenCalledWith("/");
     expect(revalidatePath).toHaveBeenCalledWith("/posts/hello-world");
     expect(redirect).toHaveBeenCalledWith("/admin");
@@ -164,7 +192,7 @@ describe("admin actions", () => {
       uploadUrl: "https://u",
       markdownPath: "/media/posts/a/x.png",
     });
-    expect(createImageUpload).toHaveBeenCalledWith({
+    expect(createImageUpload).toHaveBeenCalledWith(TOKEN, {
       slug: "a",
       contentType: "image/png",
       size: 5,

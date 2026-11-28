@@ -1,7 +1,7 @@
 export type DataConfig = {
   region: string;
-  postsTable: string;
-  mediaBucket: string;
+  /** API Gateway base URL, no trailing slash. */
+  apiUrl: string;
 };
 
 export type AppConfig = DataConfig & {
@@ -21,8 +21,7 @@ let appCache: AppConfig | undefined;
 export function getDataConfig(): DataConfig {
   dataCache ??= {
     region: required("BLOG_AWS_REGION"),
-    postsTable: required("BLOG_POSTS_TABLE"),
-    mediaBucket: required("BLOG_MEDIA_BUCKET"),
+    apiUrl: required("BLOG_API_URL"),
   };
   return dataCache;
 }

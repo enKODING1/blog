@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireAdmin } from "@/lib/auth/session";
+import { requireAdminToken } from "@/lib/auth/session";
 import { renderMarkdown } from "@/lib/markdown";
 import { createImageUpload } from "@/lib/media/upload";
 import {
@@ -11,6 +11,7 @@ import {
   PostExistsError,
   PostNotFoundError,
   updatePost,
+  ValidationError,
 } from "@/lib/posts/repo";
 import type { PostInput } from "@/lib/posts/types";
 import { validatePostInput } from "@/lib/posts/validate";
@@ -23,7 +24,7 @@ export async function savePost(
   mode: "create" | "update",
   input: PostInput
 ): Promise<ActionResult> {
-  await requireAdmin();
+  const token = await requireAdminToken();
 
   const validated = validatePostInput(input);
   if (!validated.ok) return { ok: false, errors: validated.errors };
@@ -31,12 +32,15 @@ export async function savePost(
 
   try {
     if (mode === "create") {
-      await createPost(post);
+      await createPost(token, post);
     } else {
       const { slug, ...rest } = post;
-      await updatePost(slug, rest);
+      await updatePost(token, slug, rest);
     }
   } catch (err) {
+    if (err instanceof ValidationError) {
+      return { ok: false, errors: err.errors };
+    }
     if (err instanceof PostExistsError) {
       return { ok: false, errors: { slug: "이미 있는 주소입니다" } };
     }
@@ -52,15 +56,15 @@ export async function savePost(
 }
 
 export async function removePost(slug: string): Promise<void> {
-  await requireAdmin();
-  await deletePost(slug);
+  const token = await requireAdminToken();
+  await deletePost(token, slug);
   revalidatePath("/");
   revalidatePath("/posts/" + slug);
   redirect("/admin");
 }
 
 export async function previewMarkdown(md: string): Promise<string> {
-  await requireAdmin();
+  await requireAdminToken();
   return renderMarkdown(md);
 }
 
@@ -69,6 +73,6 @@ export async function requestImageUpload(
   contentType: string,
   size: number
 ): Promise<{ uploadUrl: string; markdownPath: string }> {
-  await requireAdmin();
-  return createImageUpload({ slug, contentType, size });
+  const token = await requireAdminToken();
+  return createImageUpload(token, { slug, contentType, size });
 }

@@ -42,6 +42,13 @@ let verifier: ReturnType<typeof buildVerifier> | undefined;
  * bad token, so a stale cookie means "logged out", not a 500.
  */
 export async function getAdminSession(): Promise<AdminSession | null> {
+  return (await verifiedSession())?.session ?? null;
+}
+
+async function verifiedSession(): Promise<{
+  session: AdminSession;
+  token: string;
+} | null> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
   verifier ??= buildVerifier();
@@ -51,10 +58,25 @@ export async function getAdminSession(): Promise<AdminSession | null> {
     if (typeof email !== "string" || !email || typeof sub !== "string") {
       return null;
     }
-    return { email, sub };
+    return { session: { email, sub }, token };
   } catch {
     return null;
   }
+}
+
+/**
+ * Raw ID token of a verified admin session (sent to the API as
+ * X-User-Token, which re-verifies it). Null whenever getAdminSession() is.
+ */
+export async function getSessionToken(): Promise<string | null> {
+  return (await verifiedSession())?.token ?? null;
+}
+
+/** For Server Actions: the admin's ID token, or UnauthorizedError. */
+export async function requireAdminToken(): Promise<string> {
+  const token = await getSessionToken();
+  if (!token) throw new UnauthorizedError();
+  return token;
 }
 
 export async function requireAdmin(): Promise<AdminSession> {
@@ -72,8 +94,11 @@ export async function requireAdminPage(
   nextPath: string
 ): Promise<AdminSession> {
   const session = await getAdminSession();
-  if (!session) {
-    redirect("/api/auth/login?next=" + encodeURIComponent(nextPath));
-  }
+  if (!session) redirectToLogin(nextPath);
   return session;
+}
+
+/** Sends the browser to login, returning to `nextPath` afterwards. */
+export function redirectToLogin(nextPath: string): never {
+  redirect("/api/auth/login?next=" + encodeURIComponent(nextPath));
 }

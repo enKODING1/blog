@@ -19,7 +19,9 @@ vi.mock("aws-jwt-verify", () => ({
 
 import {
   getAdminSession,
+  getSessionToken,
   requireAdmin,
+  requireAdminToken,
   SESSION_COOKIE,
   UnauthorizedError,
 } from "@/lib/auth/session";
@@ -91,5 +93,33 @@ describe("admin session", () => {
       email: "e@example.com",
       sub: "s",
     });
+  });
+
+  it("getSessionToken returns the raw cookie only for a valid admin session", async () => {
+    cookieGet.mockReturnValue({ name: SESSION_COOKIE, value: "good.token" });
+    verify.mockResolvedValue({ sub: "s", email: "e@example.com" });
+    await expect(getSessionToken()).resolves.toBe("good.token");
+  });
+
+  it("getSessionToken returns null without a cookie", async () => {
+    cookieGet.mockReturnValue(undefined);
+    await expect(getSessionToken()).resolves.toBeNull();
+  });
+
+  it("getSessionToken returns null for an invalid token", async () => {
+    cookieGet.mockReturnValue({ name: SESSION_COOKIE, value: "bad.token" });
+    verify.mockRejectedValue(new Error("Token expired"));
+    await expect(getSessionToken()).resolves.toBeNull();
+  });
+
+  it("requireAdminToken throws UnauthorizedError without a session", async () => {
+    cookieGet.mockReturnValue(undefined);
+    await expect(requireAdminToken()).rejects.toBeInstanceOf(UnauthorizedError);
+  });
+
+  it("requireAdminToken returns the token when valid", async () => {
+    cookieGet.mockReturnValue({ name: SESSION_COOKIE, value: "good.token" });
+    verify.mockResolvedValue({ sub: "s", email: "e@example.com" });
+    await expect(requireAdminToken()).resolves.toBe("good.token");
   });
 });

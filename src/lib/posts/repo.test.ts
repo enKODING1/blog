@@ -1,33 +1,25 @@
-import { beforeEach, afterEach, describe, expect, it } from "vitest";
-import { mockClient } from "aws-sdk-client-mock";
-import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
-import {
-  DeleteCommand,
-  DynamoDBDocumentClient,
-  GetCommand,
-  PutCommand,
-  QueryCommand,
-  ScanCommand,
-  UpdateCommand,
-} from "@aws-sdk/lib-dynamodb";
-import { resetConfigForTests } from "@/lib/config";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@/lib/api/client", () => ({ apiRequest: vi.fn() }));
+
+import { apiRequest } from "@/lib/api/client";
+import { UnauthorizedError } from "@/lib/auth/session";
 import {
   PostExistsError,
   PostNotFoundError,
+  ValidationError,
   createPost,
   deletePost,
   getPost,
   getPublishedPost,
   listAllPosts,
   listPublishedPosts,
-  putPost,
   updatePost,
 } from "@/lib/posts/repo";
-import type { PostInput } from "@/lib/posts/types";
+import type { Post, PostInput } from "@/lib/posts/types";
 
-const ddbMock = mockClient(DynamoDBDocumentClient);
-const TABLE = "blog-prod-post-content-table";
-const now = new Date("2026-01-02T03:04:05.000Z");
+const api = vi.mocked(apiRequest);
+const TOKEN = "id.token";
 
 const input: PostInput = {
   slug: "browser-rendering",
@@ -37,250 +29,172 @@ const input: PostInput = {
   content: "body",
   status: "published",
 };
+const post: Post = {
+  ...input,
+  createdAt: "2026-01-02T03:04:05.000Z",
+  updatedAt: "2026-01-02T03:04:05.000Z",
+};
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const { content, ...summary } = post;
 
-const ccf = () =>
-  new ConditionalCheckFailedException({ message: "x", $metadata: {} });
+const ok = (status: number, body: unknown) => ({ status, body });
 
 beforeEach(() => {
-  process.env.BLOG_AWS_REGION = "ap-northeast-2";
-  process.env.BLOG_POSTS_TABLE = TABLE;
-  process.env.BLOG_MEDIA_BUCKET = "bucket";
-  resetConfigForTests();
-  ddbMock.reset();
+  api.mockReset();
 });
 
-afterEach(() => {
-  delete process.env.BLOG_AWS_REGION;
-  delete process.env.BLOG_POSTS_TABLE;
-  delete process.env.BLOG_MEDIA_BUCKET;
-  resetConfigForTests();
+describe("public reads", () => {
+  it("listPublishedPosts calls GET /posts without a user token", async () => {
+    api.mockResolvedValue(ok(200, [summary]));
+    await expect(listPublishedPosts()).resolves.toEqual([summary]);
+    expect(api).toHaveBeenCalledWith("GET", "/posts");
+  });
+
+  it("getPublishedPost returns the post", async () => {
+    api.mockResolvedValue(ok(200, post));
+    await expect(getPublishedPost("browser-rendering")).resolves.toEqual(post);
+    expect(api).toHaveBeenCalledWith("GET", "/posts/browser-rendering");
+  });
+
+  it("getPublishedPost maps 404 to null", async () => {
+    api.mockResolvedValue(ok(404, { error: "not_found" }));
+    await expect(getPublishedPost("nope")).resolves.toBeNull();
+  });
+
+  it("propagates client errors (5xx/network)", async () => {
+    api.mockRejectedValue(new Error("API 500"));
+    await expect(listPublishedPosts()).rejects.toThrow("API 500");
+  });
+
+  it("throws on an unexpected status", async () => {
+    api.mockResolvedValue(ok(400, { errors: {} }));
+    await expect(listPublishedPosts()).rejects.toThrow("API 400");
+  });
+});
+
+describe("admin reads", () => {
+  it("listAllPosts sends the user token", async () => {
+    api.mockResolvedValue(ok(200, [summary]));
+    await expect(listAllPosts(TOKEN)).resolves.toEqual([summary]);
+    expect(api).toHaveBeenCalledWith("GET", "/admin/posts", {
+      userToken: TOKEN,
+    });
+  });
+
+  it("getPost returns the post and maps 404 to null", async () => {
+    api.mockResolvedValueOnce(ok(200, { ...post, status: "draft" }));
+    expect((await getPost(TOKEN, "a"))?.status).toBe("draft");
+    expect(api).toHaveBeenCalledWith("GET", "/admin/posts/a", {
+      userToken: TOKEN,
+    });
+    api.mockResolvedValueOnce(ok(404, { error: "not_found" }));
+    await expect(getPost(TOKEN, "a")).resolves.toBeNull();
+  });
+
+  it.each([401, 403])("maps %i to UnauthorizedError", async status => {
+    api.mockResolvedValue(ok(status, { error: "x" }));
+    await expect(listAllPosts(TOKEN)).rejects.toBeInstanceOf(UnauthorizedError);
+    await expect(getPost(TOKEN, "a")).rejects.toBeInstanceOf(UnauthorizedError);
+  });
+
+  it("encodes the slug in the path", async () => {
+    api.mockResolvedValue(ok(404, null));
+    await getPost(TOKEN, "a/b");
+    expect(api).toHaveBeenCalledWith("GET", "/admin/posts/a%2Fb", {
+      userToken: TOKEN,
+    });
+  });
 });
 
 describe("createPost", () => {
-  it("writes a published item with GSI keys and equal timestamps", async () => {
-    ddbMock.on(PutCommand).resolves({});
-    const post = await createPost(input, now);
-    const call = ddbMock.commandCalls(PutCommand)[0].args[0].input;
-    expect(call.TableName).toBe(TABLE);
-    expect(call.ConditionExpression).toBe("attribute_not_exists(pk)");
-    expect(call.Item).toMatchObject({
-      pk: "POST#browser-rendering",
-      gsi1pk: "PUBLISHED",
-      gsi1sk: "2025-12-01#browser-rendering",
-      createdAt: now.toISOString(),
-      updatedAt: now.toISOString(),
+  it("POSTs the input and returns the created post", async () => {
+    api.mockResolvedValue(ok(201, post));
+    await expect(createPost(TOKEN, input)).resolves.toEqual(post);
+    expect(api).toHaveBeenCalledWith("POST", "/admin/posts", {
+      body: input,
+      userToken: TOKEN,
     });
-    expect(post).toEqual({
-      ...input,
-      createdAt: now.toISOString(),
-      updatedAt: now.toISOString(),
-    });
-    expect(post).not.toHaveProperty("pk");
   });
 
-  it("omits GSI keys for drafts", async () => {
-    ddbMock.on(PutCommand).resolves({});
-    await createPost({ ...input, status: "draft" }, now);
-    const item = ddbMock.commandCalls(PutCommand)[0].args[0].input.Item!;
-    expect(item).not.toHaveProperty("gsi1pk");
-    expect(item).not.toHaveProperty("gsi1sk");
-  });
-
-  it("maps ConditionalCheckFailedException to PostExistsError", async () => {
-    ddbMock.on(PutCommand).rejects(ccf());
-    await expect(createPost(input, now)).rejects.toBeInstanceOf(
+  it("maps 409 to PostExistsError", async () => {
+    api.mockResolvedValue(
+      ok(409, { errors: { slug: "이미 있는 주소입니다" } })
+    );
+    await expect(createPost(TOKEN, input)).rejects.toBeInstanceOf(
       PostExistsError
     );
   });
 
-  it("propagates other errors unchanged", async () => {
-    const err = new Error("boom");
-    ddbMock.on(PutCommand).rejects(err);
-    await expect(createPost(input, now)).rejects.toBe(err);
+  it("maps 400 to ValidationError with the errors", async () => {
+    api.mockResolvedValue(ok(400, { errors: { title: "제목을 입력하세요" } }));
+    const err = await createPost(TOKEN, input).catch(e => e);
+    expect(err).toBeInstanceOf(ValidationError);
+    expect((err as ValidationError).errors).toEqual({
+      title: "제목을 입력하세요",
+    });
+  });
+
+  it.each([401, 403])("maps %i to UnauthorizedError", async status => {
+    api.mockResolvedValue(ok(status, { error: "x" }));
+    await expect(createPost(TOKEN, input)).rejects.toBeInstanceOf(
+      UnauthorizedError
+    );
   });
 });
 
 describe("updatePost", () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { slug, ...rest } = input;
-  const attrs = {
-    pk: "POST#browser-rendering",
-    slug,
-    ...rest,
-    createdAt: "2025-01-01T00:00:00.000Z",
-    updatedAt: now.toISOString(),
-  };
 
-  it("sets GSI keys when published and requires existence", async () => {
-    ddbMock.on(UpdateCommand).resolves({
-      Attributes: {
-        ...attrs,
-        gsi1pk: "PUBLISHED",
-        gsi1sk: "2025-12-01#browser-rendering",
-      },
+  it("PUTs to the path slug and returns the post", async () => {
+    api.mockResolvedValue(ok(200, post));
+    await expect(updatePost(TOKEN, slug, rest)).resolves.toEqual(post);
+    expect(api).toHaveBeenCalledWith("PUT", "/admin/posts/browser-rendering", {
+      body: rest,
+      userToken: TOKEN,
     });
-    const post = await updatePost(slug, rest, now);
-    const i = ddbMock.commandCalls(UpdateCommand)[0].args[0].input;
-    expect(i.Key).toEqual({ pk: "POST#browser-rendering" });
-    expect(i.ConditionExpression).toBe("attribute_exists(pk)");
-    expect(i.UpdateExpression).toContain("gsi1pk");
-    expect(i.UpdateExpression).not.toContain("REMOVE");
-    expect(i.UpdateExpression).not.toContain("createdAt");
-    expect(post.createdAt).toBe("2025-01-01T00:00:00.000Z");
-    expect(post).not.toHaveProperty("pk");
-    expect(post).not.toHaveProperty("gsi1pk");
-    expect(post).not.toHaveProperty("gsi1sk");
   });
 
-  it("removes GSI keys when changed to draft", async () => {
-    ddbMock
-      .on(UpdateCommand)
-      .resolves({ Attributes: { ...attrs, status: "draft" } });
-    await updatePost(slug, { ...rest, status: "draft" }, now);
-    const i = ddbMock.commandCalls(UpdateCommand)[0].args[0].input;
-    expect(i.UpdateExpression).toContain("REMOVE gsi1pk, gsi1sk");
-  });
-
-  it("throws PostNotFoundError for a missing slug", async () => {
-    ddbMock.on(UpdateCommand).rejects(ccf());
-    await expect(updatePost("nope", rest, now)).rejects.toBeInstanceOf(
+  it("maps 404 to PostNotFoundError", async () => {
+    api.mockResolvedValue(ok(404, { error: "not_found" }));
+    await expect(updatePost(TOKEN, "nope", rest)).rejects.toBeInstanceOf(
       PostNotFoundError
     );
   });
 
-  it("propagates other errors unchanged", async () => {
-    const err = new Error("boom");
-    ddbMock.on(UpdateCommand).rejects(err);
-    await expect(updatePost(slug, rest, now)).rejects.toBe(err);
-  });
-});
-
-describe("getPost / getPublishedPost", () => {
-  const item = (status: string) => ({
-    pk: "POST#a",
-    gsi1pk: "PUBLISHED",
-    gsi1sk: "2025-12-01#a",
-    slug: "a",
-    title: "t",
-    category: "c",
-    date: "2025-12-01",
-    content: "b",
-    status,
-    createdAt: "x",
-    updatedAt: "y",
+  it("maps 400 to ValidationError", async () => {
+    api.mockResolvedValue(ok(400, { errors: { date: "날짜" } }));
+    const err = await updatePost(TOKEN, slug, rest).catch(e => e);
+    expect(err).toBeInstanceOf(ValidationError);
+    expect((err as ValidationError).errors).toEqual({ date: "날짜" });
   });
 
-  it("returns null when missing", async () => {
-    ddbMock.on(GetCommand).resolves({});
-    expect(await getPost("a")).toBeNull();
-    expect(await getPublishedPost("a")).toBeNull();
-  });
-
-  it("strips internal keys", async () => {
-    ddbMock.on(GetCommand).resolves({ Item: item("published") });
-    const p = await getPost("a");
-    expect(p).not.toHaveProperty("pk");
-    expect(p).not.toHaveProperty("gsi1pk");
-    expect(p).not.toHaveProperty("gsi1sk");
-    expect(p?.content).toBe("b");
-    expect(ddbMock.commandCalls(GetCommand)[0].args[0].input.Key).toEqual({
-      pk: "POST#a",
-    });
-  });
-
-  it("getPublishedPost returns null for drafts", async () => {
-    ddbMock.on(GetCommand).resolves({ Item: item("draft") });
-    expect(await getPublishedPost("a")).toBeNull();
-    expect((await getPost("a"))?.status).toBe("draft");
-  });
-
-  it("getPublishedPost returns published posts", async () => {
-    ddbMock.on(GetCommand).resolves({ Item: item("published") });
-    expect((await getPublishedPost("a"))?.slug).toBe("a");
-  });
-});
-
-describe("listings", () => {
-  const sum = (slug: string, date: string, status = "published") => ({
-    pk: `POST#${slug}`,
-    gsi1pk: "PUBLISHED",
-    gsi1sk: `${date}#${slug}`,
-    slug,
-    title: slug,
-    category: "c",
-    date,
-    status,
-    createdAt: "x",
-    updatedAt: "y",
-  });
-
-  it("listPublishedPosts merges pages, queries gsi1 descending", async () => {
-    ddbMock
-      .on(QueryCommand)
-      .resolvesOnce({
-        Items: [sum("b", "2025-12-02")],
-        LastEvaluatedKey: { pk: "k" },
-      })
-      .resolvesOnce({ Items: [sum("a", "2025-12-01")] });
-    const posts = await listPublishedPosts();
-    expect(posts.map(p => p.slug)).toEqual(["b", "a"]);
-    for (const p of posts) {
-      expect(p).not.toHaveProperty("pk");
-      expect(p).not.toHaveProperty("gsi1pk");
-      expect(p).not.toHaveProperty("gsi1sk");
-    }
-    const calls = ddbMock.commandCalls(QueryCommand);
-    expect(calls).toHaveLength(2);
-    const first = calls[0].args[0].input;
-    expect(first.TableName).toBe(TABLE);
-    expect(first.IndexName).toBe("gsi1");
-    expect(first.ScanIndexForward).toBe(false);
-    expect(Object.values(first.ExpressionAttributeValues ?? {})).toContain(
-      "PUBLISHED"
+  it.each([401, 403])("maps %i to UnauthorizedError", async status => {
+    api.mockResolvedValue(ok(status, { error: "x" }));
+    await expect(updatePost(TOKEN, slug, rest)).rejects.toBeInstanceOf(
+      UnauthorizedError
     );
-    expect(calls[1].args[0].input.ExclusiveStartKey).toEqual({ pk: "k" });
-  });
-
-  it("listAllPosts scans without content, sorts by date desc", async () => {
-    ddbMock
-      .on(ScanCommand)
-      .resolvesOnce({
-        Items: [sum("a", "2025-01-01", "draft")],
-        LastEvaluatedKey: { pk: "k" },
-      })
-      .resolvesOnce({
-        Items: [sum("c", "2025-03-01"), sum("b", "2025-02-01")],
-      });
-    const posts = await listAllPosts();
-    expect(posts.map(p => p.slug)).toEqual(["c", "b", "a"]);
-    expect(posts[0]).not.toHaveProperty("pk");
-    const input = ddbMock.commandCalls(ScanCommand)[0].args[0].input;
-    expect(input.ProjectionExpression).toBeDefined();
-    const names = Object.values(input.ExpressionAttributeNames ?? {});
-    expect(names).not.toContain("content");
-    expect(names).toContain("slug");
   });
 });
 
-describe("deletePost / putPost", () => {
-  it("deletes by key", async () => {
-    ddbMock.on(DeleteCommand).resolves({});
-    await deletePost("a");
-    expect(ddbMock.commandCalls(DeleteCommand)[0].args[0].input).toMatchObject({
-      TableName: TABLE,
-      Key: { pk: "POST#a" },
+describe("deletePost", () => {
+  it("DELETEs with the token and resolves on 204", async () => {
+    api.mockResolvedValue(ok(204, null));
+    await expect(deletePost(TOKEN, "a")).resolves.toBeUndefined();
+    expect(api).toHaveBeenCalledWith("DELETE", "/admin/posts/a", {
+      userToken: TOKEN,
     });
   });
 
-  it("putPost overwrites unconditionally and derives keys", async () => {
-    ddbMock.on(PutCommand).resolves({});
-    await putPost({ ...input, createdAt: "c", updatedAt: "u" });
-    const i = ddbMock.commandCalls(PutCommand)[0].args[0].input;
-    expect(i.ConditionExpression).toBeUndefined();
-    expect(i.Item).toMatchObject({
-      pk: "POST#browser-rendering",
-      gsi1pk: "PUBLISHED",
-      createdAt: "c",
-      updatedAt: "u",
-    });
+  it("treats 400 as an error, not success", async () => {
+    api.mockResolvedValue(ok(400, { errors: { slug: "x" } }));
+    await expect(deletePost(TOKEN, "a")).rejects.toThrow();
+  });
+
+  it.each([401, 403])("maps %i to UnauthorizedError", async status => {
+    api.mockResolvedValue(ok(status, { error: "x" }));
+    await expect(deletePost(TOKEN, "a")).rejects.toBeInstanceOf(
+      UnauthorizedError
+    );
   });
 });

@@ -2,8 +2,7 @@ import { resetConfigForTests } from "@/lib/config";
 
 export const TEST_ENV = {
   BLOG_AWS_REGION: "ap-northeast-2",
-  BLOG_POSTS_TABLE: "blog-prod-posts-table",
-  BLOG_MEDIA_BUCKET: "blog-prod-media-bucket",
+  BLOG_API_URL: "https://abc123.execute-api.ap-northeast-2.amazonaws.com",
   BLOG_SITE_URL: "https://blog.example.com",
   COGNITO_USER_POOL_ID: "ap-northeast-2_abc",
   COGNITO_CLIENT_ID: "client123",

@@ -1,3 +1,28 @@
 {
-  "extends": ["next/core-web-vitals", "next/typescript"]
+  "extends": ["next/core-web-vitals", "next/typescript"],
+  "rules": {
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "@aws-sdk/client-dynamodb",
+            "message": "AWS 리소스는 API Gateway를 거쳐 호출합니다 (src/lib/api/client.ts)"
+          },
+          {
+            "name": "@aws-sdk/lib-dynamodb",
+            "message": "AWS 리소스는 API Gateway를 거쳐 호출합니다 (src/lib/api/client.ts)"
+          },
+          {
+            "name": "@aws-sdk/client-s3",
+            "message": "AWS 리소스는 API Gateway를 거쳐 호출합니다 (src/lib/api/client.ts)"
+          },
+          {
+            "name": "@aws-sdk/s3-request-presigner",
+            "message": "AWS 리소스는 API Gateway를 거쳐 호출합니다 (src/lib/api/client.ts)"
+          }
+        ]
+      }
+    ]
+  }
 }

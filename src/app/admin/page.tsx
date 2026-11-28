@@ -1,12 +1,29 @@
 import Link from "next/link";
-import { requireAdminPage } from "@/lib/auth/session";
+import {
+  getSessionToken,
+  redirectToLogin,
+  requireAdminPage,
+  UnauthorizedError,
+} from "@/lib/auth/session";
 import { listAllPosts } from "@/lib/posts/repo";
+import type { PostSummary } from "@/lib/posts/types";
 
 export const dynamic = "force-dynamic";
 
+const PATH = "/admin";
+
 export default async function AdminPage() {
-  await requireAdminPage("/admin");
-  const posts = await listAllPosts();
+  await requireAdminPage(PATH);
+  const token = await getSessionToken();
+  if (!token) redirectToLogin(PATH);
+  let posts: PostSummary[];
+  try {
+    posts = await listAllPosts(token);
+  } catch (err) {
+    // Token expired between the page check and the API's re-check.
+    if (err instanceof UnauthorizedError) redirectToLogin(PATH);
+    throw err;
+  }
   return (
     <table className="w-full text-left text-sm">
       <thead className="text-dim">
