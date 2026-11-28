@@ -12,6 +12,8 @@ const REQUIRED_ROUTES = [
   "/api/auth/login",
   "/api/auth/callback",
   "/api/auth/logout",
+  "/sitemap.xml",
+  "/robots.txt",
 ];
 const errors = [];
 
