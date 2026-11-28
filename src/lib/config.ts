@@ -40,6 +40,11 @@ export function getConfig(): AppConfig {
   return appCache;
 }
 
+/** Public origin without a trailing slash, e.g. "https://blog.skang.dev". */
+export function getSiteUrl(): string {
+  return required("BLOG_SITE_URL").replace(/\/+$/, "");
+}
+
 /** Test-only: clears memoized config. */
 export function resetConfigForTests(): void {
   dataCache = undefined;
