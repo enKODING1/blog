@@ -18,3 +18,19 @@ aws-config = { version = "1.13.4", features = ["behavior-version-latest"] }
 aws-sdk-dynamodb = "1.141.0"
 async-trait = "0.1.92"
 chrono = { version = "0.4.45", default-features = false, features = ["clock", "std"] }
+jsonwebtoken = { version = "12", default-features = false, features = ["aws_lc_rs"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+aws-sdk-s3 = "1.162.0"
+uuid = { version = "1.29.3", features = ["v4"] }
+
+[dev-dependencies]
+base64 = "0.22"
+rand = "0.8"
+rsa = "0.9"
+
+# 테스트에서 RSA 키를 만드는 시간을 줄인다(디버그 빌드의 큰 수 연산은 매우 느리다).
+[profile.dev.package.num-bigint-dig]
+opt-level = 3
+
+[profile.dev.package.rsa]
+opt-level = 3
