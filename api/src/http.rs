@@ -12,7 +12,6 @@ pub fn json(status: u16, body: &impl Serialize) -> Response<Body> {
 }
 
 #[derive(Debug)]
-#[allow(dead_code)] // Task 2·3 에서 사용
 pub enum ApiError {
     BadRequest(BTreeMap<String, String>),
     Unauthorized,

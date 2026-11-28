@@ -1,4 +1,7 @@
-use lambda_http::http::Method;
+use crate::http::json;
+use crate::posts::handlers::handle_posts;
+use crate::posts::store::PostStore;
+use lambda_http::{http::Method, Body, Response};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Route {
@@ -14,7 +17,7 @@ pub enum Route {
 }
 
 impl Route {
-    // Task 3 의 디스패치에서 사용한다.
+    // TODO(task3): dispatch 에서 관리자 토큰 검증에 사용한다.
     #[allow(dead_code)]
     pub fn requires_admin(&self) -> bool {
         matches!(
@@ -50,6 +53,26 @@ pub fn route(method: &Method, path: &str) -> Route {
         (&Method::POST, ["admin", "uploads"]) => Route::AdminUpload,
         _ => Route::NotFound,
     }
+}
+
+/// 라우트를 처리하고 오류를 상태 코드 응답으로 바꾼다.
+pub async fn dispatch(
+    route: &Route,
+    body: &[u8],
+    store: &dyn PostStore,
+    now: &str,
+) -> Response<Body> {
+    // TODO(task3): route.requires_admin() 이면 X-User-Token 을 검증해 401/403 을 돌려준다.
+    // Task 3 전까지 관리자 경로는 임시로 인증 없이 통과한다(API Gateway IAM 서명만 있음).
+    let result = match route {
+        // TODO(task3): 업로드 URL 발급.
+        Route::AdminUpload => Ok(json(
+            501,
+            &serde_json::json!({ "error": "not_implemented" }),
+        )),
+        _ => handle_posts(route, body, store, now).await,
+    };
+    result.unwrap_or_else(Into::into)
 }
 
 #[cfg(test)]
