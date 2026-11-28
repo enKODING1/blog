@@ -1,18 +1,14 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
-import Script from "next/script";
+import { JetBrains_Mono } from "next/font/google";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
-import Navbar from "./components/Navbar";
+import BlockCursor from "./_terminal/BlockCursor";
+import StatusBar from "./_terminal/StatusBar";
+import { TransitionProvider } from "./_terminal/TransitionProvider";
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
-});
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
+const mono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
 });
 
 export const metadata: Metadata = {
@@ -20,46 +16,38 @@ export const metadata: Metadata = {
   description: "Personal blog",
 };
 
+// Runs before first paint: hide main's lines so PageEnter can type them in
+// without a flash. Its conditions (not /admin, motion allowed) must stay in
+// sync with PageEnter's skip rules, or lines stay clipped / flash. If
+// hydration takes longer than 800ms the guard lifts and PageEnter's
+// `firstLoad && !guarded` branch shows the page without animating (R8).
+const ENTER_GUARD = `try{var d=document.documentElement;if(!location.pathname.startsWith("/admin")&&!matchMedia("(prefers-reduced-motion: reduce)").matches){d.setAttribute("data-enter","");setTimeout(function(){d.removeAttribute("data-enter")},800)}}catch(e){}`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    // suppressHydrationWarning: ENTER_GUARD sets data-enter before hydration.
+    <html lang="ko" className={mono.variable} suppressHydrationWarning>
       <head>
-        <link
-          rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css"
-          media="(prefers-color-scheme: light)"
-        />
+        <script dangerouslySetInnerHTML={{ __html: ENTER_GUARD }} />
         <link
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
-          media="(prefers-color-scheme: dark)"
         />
-        <Script
-          async
-          src="https://www.googletagmanager.com/gtag/js?id=G-SQB18PDDPD"
-        ></Script>
-        <Script id="google-analytics">
-          {`
-
-window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
-
-gtag('config', 'G-SQB18PDDPD');
-          `}
-        </Script>
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <Navbar />
-        <main className="px-4 w-full max-w-[640px] mt-[100px] mx-auto">
-          {children}
-        </main>
+      <body className="font-mono antialiased">
+        <TransitionProvider>
+          <StatusBar />
+          <div className="max-w-3xl mx-auto px-4">
+            <main>{children}</main>
+          </div>
+        </TransitionProvider>
+        <div className="scanlines" aria-hidden />
+        <BlockCursor />
+        <GoogleAnalytics gaId="G-SQB18PDDPD" />
       </body>
     </html>
   );

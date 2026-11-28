@@ -2,8 +2,11 @@ name: CI
 
 # PR 검사. AWS 권한 없이 돈다 (id-token 권한 없음).
 # GitHub > Settings > Branches 에서 main 에 아래 job 들을 required check 로 지정한다.
+# main 보호가 꺼져 있어 직접 push 도 검사한다.
 on:
   pull_request:
+  push:
+    branches: [main]
 
 permissions:
   contents: read
@@ -21,7 +24,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - run: npm ci
@@ -29,6 +32,7 @@ jobs:
       - run: npm run format:check
       - name: Check post image paths
         run: node scripts/check-images.mjs
+      - run: npm test
       - run: npm run build
       - name: Check build output
         run: node scripts/check-build.mjs
@@ -44,3 +48,22 @@ jobs:
       - uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  terraform:
+    name: Terraform
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - run: terraform fmt -check -recursive
+
+      # backend 없이 provider 스키마만으로 검사한다 (AWS·Cloudflare 자격 증명 불필요)
+      - name: Validate infra
+        working-directory: infra
+        run: terraform init -backend=false && terraform validate
+
+      - name: Validate infra-shared/auth
+        working-directory: infra-shared/auth
+        run: terraform init -backend=false && terraform validate

@@ -9,3 +9,5 @@ build/
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
+.superpowers/
+src/lib/posts/__fixtures__/

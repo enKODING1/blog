@@ -1,21 +1,106 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@theme {
+  --color-bg: #1c1c1c;
+  --color-fg: #e8e8e8;
+  --color-dim: #8a8a8a;
+  --color-line: #333333;
+  --color-faint: #5a5a5a;
+  --color-rule: #262626;
+  --color-accent: #54fcfc;
+  --color-error: #ff5f57;
+  --font-sans: system-ui, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-fg);
+}
+
+::selection {
+  background: var(--color-fg);
+  color: var(--color-bg);
+}
+
+:focus-visible {
+  outline: 1px solid var(--color-fg);
+  outline-offset: 2px;
+}
+
+/* Inverted highlight (selected row, hover). A utility so variants work:
+   hover:term-sel, group-hover:term-sel, group-focus-within:term-sel. Children
+   inherit the inverted color so dim/accent text stays readable. */
+@utility term-sel {
+  background-color: var(--color-fg);
+  color: var(--color-bg);
+
+  & * {
+    color: inherit;
+  }
+}
+
+/* Article body: dark prose tuned to the terminal tokens. */
+.prose.prose-invert {
+  --tw-prose-invert-body: #d0d0d0;
+  --tw-prose-invert-headings: var(--color-fg);
+  --tw-prose-invert-lead: #d0d0d0;
+  --tw-prose-invert-links: var(--color-fg);
+  --tw-prose-invert-bold: var(--color-fg);
+  --tw-prose-invert-counters: var(--color-dim);
+  --tw-prose-invert-bullets: var(--color-dim);
+  --tw-prose-invert-hr: var(--color-line);
+  --tw-prose-invert-quotes: #d0d0d0;
+  --tw-prose-invert-quote-borders: var(--color-line);
+  --tw-prose-invert-captions: var(--color-dim);
+  --tw-prose-invert-code: var(--color-fg);
+  --tw-prose-invert-pre-code: var(--color-fg);
+  --tw-prose-invert-pre-bg: #141414;
+  --tw-prose-invert-th-borders: var(--color-line);
+  --tw-prose-invert-td-borders: var(--color-line);
+}
+
+/* Long unbroken text (e.g. a bare GitHub URL) wraps instead of widening the
+   page on mobile. break-word keeps table min-content sizing intact. */
+.prose {
+  overflow-wrap: break-word;
+}
+
+/* Code stays monospace inside the sans-serif article body. */
+.prose :where(code, pre, kbd, samp) {
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
+
+.scanlines {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgb(255 255 255 / 0.035) 0 1px,
+    transparent 1px 3px
+  );
+}
+
+/*
+ * First-load enter guard: layout.tsx's inline head script sets data-enter
+ * before paint (motion allowed, not /admin); PageEnter removes it once GSAP
+ * owns the lines. The script also drops it after 800ms if JS never hydrates.
+ */
+html[data-enter] main [data-line] {
+  clip-path: inset(0 100% 0 0);
+}
+
+/* Block cursor (BlockCursor.tsx toggles the class). Form fields keep theirs. */
+.block-cursor,
+.block-cursor * {
+  cursor: none;
+}
+.block-cursor
+  :is(input, textarea, select, [contenteditable], [contenteditable] *) {
+  cursor: auto;
+}
+.block-cursor :is(input, textarea, [contenteditable], [contenteditable] *) {
+  cursor: text;
 }

@@ -1,29 +1,60 @@
-import { getAllPostIds, getPostData } from "../../../../lib/posts";
-import Post from "../../components/Post";
-import Comments from "@/app/components/Comments";
+import { cache } from "react";
+import { TransitionLink } from "@/app/_terminal/TransitionProvider";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { getPublishedPost } from "@/lib/posts/repo";
+import { renderMarkdown } from "@/lib/markdown";
+import { isValidSlug } from "@/lib/posts/validate";
+import Scramble from "@/app/_terminal/Scramble";
+import PostKeys from "@/app/_terminal/PostKeys";
 
-export async function generateStaticParams() {
-  const posts = getAllPostIds();
-  return posts.map(post => ({ slug: post }));
+export const dynamic = "force-dynamic";
+
+type Props = { params: Promise<{ slug: string }> };
+
+const getPost = cache(getPublishedPost);
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  if (!isValidSlug(slug)) notFound();
+  const post = await getPost(slug);
+  return { title: post?.title };
 }
 
-export default async function PostPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const id = (await params).slug;
-  const { title, date, category, content } = await getPostData(id);
+export default async function PostPage({ params }: Props) {
+  const { slug } = await params;
+  if (!isValidSlug(slug)) notFound();
+  const post = await getPost(slug);
+  if (!post) notFound();
+
+  const html = await renderMarkdown(post.content);
 
   return (
-    <>
-      <Post
-        title={title ?? "Undefined Title"}
-        date={date ?? "Undefined Date"}
-        category={category ?? "undefined Category"}
-        content={content}
+    <div className="py-6">
+      <p data-line className="text-dim">
+        $ cat posts/{slug}.md
+      </p>
+      <h1
+        data-line
+        tabIndex={-1}
+        className="mt-4 text-2xl font-bold text-fg outline-none"
+      >
+        <Scramble trigger="mount" text={post.title} />
+      </h1>
+      <p data-line className="mt-1 text-sm text-dim">
+        {post.date} · {post.category}
+      </p>
+      <article
+        data-line
+        className="prose prose-invert mt-8 max-w-none font-sans"
+        dangerouslySetInnerHTML={{ __html: html }}
       />
-      <Comments />
-    </>
+      <p data-line className="mt-12">
+        <TransitionLink href="/" className="px-1 hover:term-sel">
+          ← cd ..
+        </TransitionLink>
+      </p>
+      <PostKeys />
+    </div>
   );
 }
