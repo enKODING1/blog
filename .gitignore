@@ -55,3 +55,6 @@ infra-shared/**/*.tfvars
 
 # Cloudflare API 토큰 (로컬 전용)
 **/.cloudflare-token
+
+# Rust API 빌드 산출물
+api/target/

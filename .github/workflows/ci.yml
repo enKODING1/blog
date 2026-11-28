@@ -67,3 +67,27 @@ jobs:
       - name: Validate infra-shared/auth
         working-directory: infra-shared/auth
         run: terraform init -backend=false && terraform validate
+
+  rust:
+    name: Rust
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: api
+
+      - run: pip install cargo-lambda
+
+      - name: Check / Test / Build
+        working-directory: api
+        run: |
+          cargo fmt --check
+          cargo clippy --all-targets -- -D warnings
+          cargo test
+          cargo lambda build --release --arm64
