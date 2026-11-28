@@ -5,38 +5,48 @@ import ListKeyboardNav from "./_terminal/ListKeyboardNav";
 
 export const dynamic = "force-dynamic";
 
+/** "2025-12-01" → "2025.12" */
+function yearMonth(date: string): string {
+  return date.slice(0, 7).replace("-", ".");
+}
+
 export default async function Home() {
   const posts = await listPublishedPosts();
 
   return (
-    <div className="py-6">
+    <div className="py-8">
       {/* Focus target after a transition; not a data-line. */}
       <h1 tabIndex={-1} className="sr-only">
         글 목록
       </h1>
-      <p data-line className="text-dim">
-        $ ls posts --sort=date
-      </p>
       {posts.length === 0 ? (
-        <p data-line className="mt-2">
+        <p data-line className="text-dim">
           아직 글이 없습니다.
         </p>
       ) : (
         <ListKeyboardNav>
-          <ul className="mt-2">
+          <ul>
             {posts.map((post, i) => (
               <li key={post.slug} data-line data-index={i} className="group">
                 <TransitionLink
                   href={`/posts/${post.slug}`}
-                  className="grid grid-cols-[auto_1fr] gap-x-4 px-1 hover:term-sel group-focus-within:term-sel sm:grid-cols-[auto_auto_1fr]"
+                  className="flex items-baseline justify-between gap-10 border-b border-rule py-[18px] transition-[padding] duration-200 group-hover:pl-[10px] focus-visible:pl-[10px] focus-visible:outline-none motion-reduce:transition-none"
                 >
-                  <span className="text-dim">{post.date}</span>
-                  <span className="text-accent">{post.category}</span>
-                  <Scramble
-                    trigger="hover"
-                    text={post.title}
-                    className="col-span-2 sm:col-span-1"
-                  />
+                  <span className="min-w-0 font-sans text-[15px] leading-snug">
+                    <span
+                      aria-hidden="true"
+                      className="mr-1 hidden text-accent group-hover:inline group-focus-within:inline"
+                    >
+                      ›
+                    </span>
+                    <Scramble trigger="hover" text={post.title} />
+                  </span>
+                  <time
+                    dateTime={post.date}
+                    className="shrink-0 text-[11px] text-faint group-hover:text-dim group-focus-within:text-dim"
+                  >
+                    {yearMonth(post.date)}
+                  </time>
                 </TransitionLink>
               </li>
             ))}

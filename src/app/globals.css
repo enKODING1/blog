@@ -6,6 +6,8 @@
   --color-fg: #e8e8e8;
   --color-dim: #8a8a8a;
   --color-line: #333333;
+  --color-faint: #5a5a5a;
+  --color-rule: #262626;
   --color-accent: #54fcfc;
   --color-error: #ff5f57;
   --font-sans: system-ui, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
